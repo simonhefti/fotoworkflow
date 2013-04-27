@@ -1,0 +1,280 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Foto Selector</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link href="css/bootstrap.min.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
+
+<script src="js/zepto.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/selector.js"></script>
+<script>
+window.jQuery = Zepto;
+</script>
+<script src="js/jsOAuth.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/jwerty.js"></script>
+
+</head>
+<body>
+
+<div>
+  <input id="query" type="text" class="input-xlarge search-query">
+      <a id="Prev1" class="btn" href="#"><i class="icon-step-backward"></i></a>
+      <a id="Prev" class="btn" href="#"><i class="icon-circle-arrow-left"></i></a>
+      <a id="Next" class="btn" href="#"><i class="icon-circle-arrow-right"></i></a>
+  <a id='doc-all' class='btn' href="#"><i class='icon-thumbs-down' title='mark all as documentary'></i></a>
+  <input id="path" type="text" placeholder="Path">
+  <button id="scan" type="button" class="btn">Scan</button>
+  
+<div class="btn-group">
+  <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+    Evernote
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu">
+    <li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize</a></li>
+  </ul>
+</div>
+
+  
+<div id="output" />
+
+<script>
+
+var page = 1;
+
+var _rotate = function rotate(el, ang, parent) {
+	var w = el.attr("width");
+	el.animate({rotateZ:ang, translate3d: '0,10px,0'},200,'ease-out');
+	parent.attr("height",w + 20);
+}
+
+var _save = function(path, k, v) {
+	var url = "/?cmd=store&path=" + path + "&k=" + k + "&v="+v;
+	$.get(url, function(response){
+		console.log("save result: " + response);
+	});
+}
+
+var _setRotation = function setRotation(path, angle, img) {
+	_save(path, "orientation", angle);
+	var url = "/?cmd=invalidate_thumbnail&path=" + path;
+	$.ajax({
+		  type: 'GET',
+		  url: url,
+		  async: false,
+		  success: function(response){
+			  console.log("save result: " + response);
+		  },
+	});	
+	var now = new Date().getTime();
+	url = "/?cmd=thumbnail&t=" + now + "&path=" + path;
+	// url = "/?cmd=thumbnail&path=" + path;
+	console.log("setting img %s attr to %s",img.attr("src"), url);
+	img.attr("src",url);
+}
+
+var _qualificationButton = function(item, iconName, category) {
+	var bDoc = $("<a class='btn btn-mini' href='#'></a>");
+	var icn = $("<i class='" + iconName + "' title='" + category + "'></i>");
+	bDoc.append(icn);
+	if( category == item.category) {
+		bDoc.addClass("btn-inverse");
+		icn.addClass("icon-white");
+	}
+	bDoc.on('click', function(e) {
+		_save(item.path,"category", category);
+		bDoc.addClass("btn-inverse");
+		icn.addClass("icon-white");
+	});
+	return bDoc;
+}
+
+var _evernote_link = function(item) {
+	var bDoc = $("<a class='btn btn btn-mini' href='#'></a>");
+	var icn = $("<i class='icon-magnet' title='Evernote Sync'></i>");
+	bDoc.append(icn);
+	if( undefined != item.noteId && item.noteId.length > 1) {
+		bDoc.addClass("btn-inverse");
+		icn.addClass("icon-white");
+	}
+	bDoc.on('click', function(e) {
+		var url = "/?cmd=evernote-link&path=" + item.path;
+		$.get(url, function(response){
+			console.log("evernote-link result: " + response);
+		});
+		bDoc.addClass("btn-inverse");
+		icn.addClass("icon-white");
+	});
+	return bDoc;
+}
+
+var searchFoto = function searchFoto() {
+	var url = "/?cmd=list&st=" + $('#query').val() + "&p="+page;
+	$.getJSON(url,function(data){
+		var twitterList = $( "<ul class='thumbnails'/>" );
+		$( "#output" ).empty();
+		$.each( data, function( index, item ) {
+			var tr = $( "<li class='span4'/>" );
+			tr.data('path',item.path);
+
+			var td = $("<div class='thumbnail' />");
+			tr.append(td);
+			
+			var href = $("<a href='?cmd=get&path=" + item.path + "'></a>");
+			td.append(href);
+
+			var img = $("<img src='" + item.thumbnail + "'>");
+			href.append(img);
+
+			var ip = $("<input />", { type:"text" })
+			if (typeof(item.note) != "undefined" && item.note.length > 0) {
+				ip.val(item.note);
+			}
+			ip.bind('change', function() { 
+			    var f = $(this) // get the current value of the input field.
+			    var tr = f.closest("li");
+				console.log("change detected: %s on: ", f.val(), tr.data("path"));
+				_save(tr.data("path"), "note", f.val());
+			});
+			td.append(ip);
+
+			var commands = $("<p />");
+			td.append(commands);
+			
+			var b090 = $("<button class='btn btn-info btn-mini' type='button'>R</button>");
+			b090.on('click', function(e) {
+				_setRotation(item.path, "90 CW", img);
+			});
+			commands.append(b090);
+			
+			var b270 = $("<button class='btn btn-info btn-mini' type='button'>L</button>");
+			b270.on('click', function(e) {
+			    var f = $(this) // get the current value of the input field.
+			    var tr = f.closest("li");
+			    var path = tr.data("path");
+				_setRotation(path, "270 CW", img);
+			});
+			commands.append(b270);
+			
+			var bNone = $("<button class='btn btn-info btn-mini' type='button'>NR</button>");
+			bNone.on('click', function(e) {
+				_rotate(img,"0deg", img);
+				_save(item.path,"orientation", "rotation reset");
+			});
+			commands.append(bNone);
+			
+			// -- qualifications --
+			
+			var bDoc = _qualificationButton(item, 'icon-thumbs-down', 'documentary');
+			commands.append(bDoc);
+			
+			var bDoc = _qualificationButton(item, 'icon-star-empty', 'normal');
+			commands.append(bDoc);
+
+			var bDoc = _qualificationButton(item, 'icon-thumbs-up', 'selection');
+			commands.append(bDoc);
+
+			var bDoc = _qualificationButton(item, 'icon-star', 'best-of');
+			commands.append(bDoc);
+			
+			// evernote
+			var bDoc = _evernote_link(item);
+			commands.append(bDoc);
+
+			twitterList.append(tr);
+		});
+		$( "#output" ).append( twitterList );
+	});
+}
+
+var elem = $('#search');
+elem.on('click', function(e) {
+	page = 1;
+	searchFoto();
+});
+
+var elem = $('#query');
+elem.bind('change', function() { 
+	page = 1;
+	searchFoto();
+});
+
+
+var elem = $('#scan');
+elem.on('click', function(e) {
+	var url = "/?cmd=scan&path=" + $('#path').val();
+	console.log(url);
+	$.ajax({
+		  type: 'GET',
+		  url: url,
+		  async: true,
+		  success: function(response){
+			  console.log("scan result: " + response);
+		  },
+	});	
+});
+
+var elem = $('#Next');
+elem.on('click', function(e) {
+	page++;
+	searchFoto();
+});
+
+var elem = $('#Prev');
+elem.on('click', function(e) {
+	page--;
+	searchFoto();
+});
+
+var elem = $('#Page1');
+elem.on('click', function(e) {
+	page = 1;
+	searchFoto();
+});
+
+var elem = $('#Page10');
+elem.on('click', function(e) {
+	page = 10;
+	searchFoto();
+});
+
+var elem = $('#Page20');
+elem.on('click', function(e) {
+	page = 20;
+	searchFoto();
+});
+
+var elem = $('#doc-all');
+elem.on('click', function(e) {
+  $('#output ul li').each(function(index) {
+	  //var foto = this.data();
+	  // console.log('input %d is: %o', index, this);
+	  var v = $(this);
+	  var f = v.data('path');
+	  console.log('input %s', f);
+	  _save(f,"category", "documentary");
+  });  
+});
+
+
+jwerty.key('→', function () { 
+	page++;
+	searchFoto();
+});
+
+jwerty.key('←', function () { 
+	page--;
+	searchFoto();
+});
+
+Zepto(function($){
+	page = 1;
+	searchFoto();
+});
+</script>
+
+</body>
+</html>
