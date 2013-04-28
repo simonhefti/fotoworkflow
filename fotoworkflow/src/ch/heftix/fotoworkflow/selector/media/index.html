@@ -4,7 +4,8 @@
 <title>Foto Selector</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link href="css/bootstrap.min.css" rel="stylesheet">
-<link href="css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
+<link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+<link href="css/bootstrap-lightbox.min.css" rel="stylesheet">
 
 <script src="js/zepto.min.js"></script>
 <script src="js/data.js"></script>
@@ -15,6 +16,7 @@ window.jQuery = Zepto;
 <script src="js/jsOAuth.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/jwerty.js"></script>
+<script src="js/bootstrap-lightbox.min.js"></script>
 
 </head>
 <body>
@@ -30,20 +32,45 @@ window.jQuery = Zepto;
   
 <div class="btn-group">
   <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-    Evernote
+    <i class='icon-wrench'></i>
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu">
-    <li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize</a></li>
+    <li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
+    <li><a id="ping" href="#"> Ping</a></li>
   </ul>
 </div>
+<div id="msgbox">
+</div>
 
-  
+<div id="myModal" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true" width="600px">
+	<div class='lightbox-header'>
+		<button type="button" class="close" data-dismiss="lightbox" aria-hidden="true">&times;</button>
+	</div>
+	<div class='lightbox-content'>
+	  <img id="overlay_img"  />
+	</div>
+</div>
+
 <div id="output" />
+
 
 <script>
 
 var page = 1;
+var img_on_page = 0;
+
+var _note = function(code, text) {
+	// console.log("_note: " + code + " " + text);
+	var style = 'alert-success';
+	if( "info" == code) {
+		style = 'alert-info';
+	}
+	if( "error" == code) {
+		style = 'alert-error';
+	}
+	$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+text+'</span></div>');
+}
 
 var _rotate = function rotate(el, ang, parent) {
 	var w = el.attr("width");
@@ -54,7 +81,8 @@ var _rotate = function rotate(el, ang, parent) {
 var _save = function(path, k, v) {
 	var url = "/?cmd=store&path=" + path + "&k=" + k + "&v="+v;
 	$.get(url, function(response){
-		console.log("save result: " + response);
+		_note("info", "saved " + v + " for " + path);
+		// console.log("save result: " + response);
 	});
 }
 
@@ -66,13 +94,12 @@ var _setRotation = function setRotation(path, angle, img) {
 		  url: url,
 		  async: false,
 		  success: function(response){
-			  console.log("save result: " + response);
+			  _note("info", "thumbnail invalidated for " + path);
+			  // console.log("save result: " + response);
 		  },
 	});	
 	var now = new Date().getTime();
 	url = "/?cmd=thumbnail&t=" + now + "&path=" + path;
-	// url = "/?cmd=thumbnail&path=" + path;
-	console.log("setting img %s attr to %s",img.attr("src"), url);
 	img.attr("src",url);
 }
 
@@ -102,8 +129,9 @@ var _evernote_link = function(item) {
 	}
 	bDoc.on('click', function(e) {
 		var url = "/?cmd=evernote-link&path=" + item.path;
-		$.get(url, function(response){
-			console.log("evernote-link result: " + response);
+		$.getJSON(url, function(response){
+			// console.log("evernote-link result: %o", response);
+			_note(response.code, response.msg);
 		});
 		bDoc.addClass("btn-inverse");
 		icn.addClass("icon-white");
@@ -116,14 +144,24 @@ var searchFoto = function searchFoto() {
 	$.getJSON(url,function(data){
 		var twitterList = $( "<ul class='thumbnails'/>" );
 		$( "#output" ).empty();
-		$.each( data, function( index, item ) {
+		if( "ok" != data.code) {
+			_note(data.code, data.msg);
+		}
+		$.each( data.payload, function( index, item ) {
 			var tr = $( "<li class='span4'/>" );
 			tr.data('path',item.path);
 
 			var td = $("<div class='thumbnail' />");
 			tr.append(td);
 			
-			var href = $("<a href='?cmd=get&path=" + item.path + "'></a>");
+			var href = $("<a href='#'></a>");
+			href.data('path',item.path);
+			href.bind('click', function () {
+			    var t = $(this); // get the current value of the input field.
+			    var src = t.data('path');
+				$("#overlay_img").attr('src',"?cmd=get&path=" + src);
+			    $("#myModal").lightbox();
+			});
 			td.append(href);
 
 			var img = $("<img src='" + item.thumbnail + "'>");
@@ -136,7 +174,6 @@ var searchFoto = function searchFoto() {
 			ip.bind('change', function() { 
 			    var f = $(this) // get the current value of the input field.
 			    var tr = f.closest("li");
-				console.log("change detected: %s on: ", f.val(), tr.data("path"));
 				_save(tr.data("path"), "note", f.val());
 			});
 			td.append(ip);
@@ -250,13 +287,17 @@ elem.on('click', function(e) {
 var elem = $('#doc-all');
 elem.on('click', function(e) {
   $('#output ul li').each(function(index) {
-	  //var foto = this.data();
-	  // console.log('input %d is: %o', index, this);
 	  var v = $(this);
 	  var f = v.data('path');
-	  console.log('input %s', f);
 	  _save(f,"category", "documentary");
   });  
+});
+
+$('#ping').on('click', function(e) {
+	var url = "/?cmd=ping"
+	$.getJSON(url, function(r){
+		_note(r.code, r.msg);
+	});
 });
 
 
@@ -265,10 +306,23 @@ jwerty.key('→', function () {
 	searchFoto();
 });
 
+jwerty.key('shift+→', function () {
+	img_on_page++;
+	if( img_on_page > 5) {
+		img_on_page = 0;
+	}
+	var li = $('#output ul').children().get(img_on_page);
+	var f = $(li).data('path');
+	$("#overlay_img").attr('src',"?cmd=get&path=" + f);
+});
+
 jwerty.key('←', function () { 
 	page--;
 	searchFoto();
 });
+
+var tst = {"code":"info","msg":"Welcome to Foto Workflow. Nice to see you."};
+_note(tst.code, tst.msg);
 
 Zepto(function($){
 	page = 1;
