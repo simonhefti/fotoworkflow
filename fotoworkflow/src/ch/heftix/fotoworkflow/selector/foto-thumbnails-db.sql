@@ -22,6 +22,8 @@ create virtual table foto using fts4 (
   noteid text, -- evernote note ID,e.g. aaaaaaa-aaaa-aaaa-aaaa-aaaaaaa
   mimetype text, -- mime type of this file, e.g. image/jpeg
   creationdate text, -- format yyyy-MM-dd'T'HHmm
+  w int, -- width
+  h int, -- height
   make text, -- camera make, e.g. Nikon
   model text, -- camera model, e.g. Sinarback 54 M, Hasselblad
   geo_long text, -- longitude in degrees, e.g. 10.0 (west is negative)
@@ -38,3 +40,4 @@ create table conf (
 );
 
 insert into conf (k,v) values ('version',1);
+insert into conf (k,v) values ('importPattern','/@{CreationDate: yyyy}/@{Model}/@{CreationDate: yyyy-MM}/@{CreationDate: yyyy-MM-dd''T''HHmm}_@{Filename}@{Unique}.@{Extension}');

@@ -18,6 +18,24 @@ window.jQuery = Zepto;
 <script src="js/jwerty.js"></script>
 <script src="js/bootstrap-lightbox.min.js"></script>
 
+<style type="text/css">
+.r90
+{
+    -moz-transform:rotate(90deg);
+    -webkit-transform:rotate(90deg);
+}
+.r180
+{
+    -moz-transform:rotate(180deg);
+    -webkit-transform:rotate(180deg);
+}
+.r270
+{
+    -moz-transform:rotate(270deg);
+    -webkit-transform:rotate(270deg);
+}
+</style>
+
 </head>
 <body>
 
@@ -27,8 +45,6 @@ window.jQuery = Zepto;
       <a id="Prev" class="btn" href="#"><i class="icon-circle-arrow-left"></i></a>
       <a id="Next" class="btn" href="#"><i class="icon-circle-arrow-right"></i></a>
   <a id='doc-all' class='btn' href="#"><i class='icon-thumbs-down' title='mark all as documentary'></i></a>
-  <input id="path" type="text" placeholder="Path">
-  <button id="scan" type="button" class="btn">Scan</button>
   
 <div class="btn-group">
   <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
@@ -37,10 +53,38 @@ window.jQuery = Zepto;
   </a>
   <ul class="dropdown-menu">
     <li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
+    <li><a id="menuImport" href="#"> Import more Photos</a></li>
     <li><a id="ping" href="#"> Ping</a></li>
   </ul>
 </div>
 <div id="msgbox">
+</div>
+
+<div id="modalImport" class="modal hide fade">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Import more photos</h3>
+  </div>
+  <div class="modal-body">
+<form class="form-horizontal">
+  <div class="control-group">
+    <label class="control-label" for="importPath">Path</label>
+    <div class="controls">
+      <input type="text" id="importPath" class="input-xlarge" placeholder="Where to import your photos from (path)">
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="importPattern">Foto Naming Pattern</label>
+    <div class="controls">
+      <input type="text" id="importPattern" class="input-xlarge" placeholder="/@{CreationDate: yyyy}/@{Model}/@{CreationDate: yyyy-MM}/@{CreationDate: yyyy-MM-dd'T'HHmm}_@{Filename}@{Unique}.@{Extension}">
+    </div>
+  </div>
+</form>
+  </div>
+  <div class="modal-footer">
+    <a href="#" class="btn">Close</a>
+    <a id="importStart" href="#" class="btn btn-primary">Start import</a>
+  </div>
 </div>
 
 <div id="myModal" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true" width="600px">
@@ -48,9 +92,10 @@ window.jQuery = Zepto;
 		<button type="button" class="close" data-dismiss="lightbox" aria-hidden="true">&times;</button>
 	</div>
 	<div class='lightbox-content'>
-	  <img id="overlay_img"  />
+	  <img id="overlay_img" />
 	</div>
 </div>
+
 
 <div id="output" />
 
@@ -82,10 +127,15 @@ var _save = function(path, k, v) {
 	var url = "/?cmd=store&path=" + path + "&k=" + k + "&v="+v;
 	$.get(url, function(response){
 		_note("info", "saved " + v + " for " + path);
-		// console.log("save result: " + response);
 	});
 }
 
+var _readImportPattern = function() {
+	var url = "/?cmd=cfg.get&k=importPattern";
+	$.getJSON(url, function(r){
+		$("#importPattern").val(r.payload.importPattern);
+	});
+}
 var _setRotation = function setRotation(path, angle, img) {
 	_save(path, "orientation", angle);
 	var url = "/?cmd=invalidate_thumbnail&path=" + path;
@@ -159,7 +209,21 @@ var searchFoto = function searchFoto() {
 			href.bind('click', function () {
 			    var t = $(this); // get the current value of the input field.
 			    var src = t.data('path');
-				$("#overlay_img").attr('src',"?cmd=get&path=" + src);
+			    var oi = $("#overlay_img"); 
+				oi.attr('src',"?cmd=get&path=" + src);
+			    var bx = $("#myModal"); 
+				bx.removeClass("r90");
+				bx.removeClass("r180");
+				bx.removeClass("r270");
+				if( item.orientation.indexOf("90 CW") != -1) {
+					bx.addClass("r90");
+				}
+				if( item.orientation.indexOf("270 CW") != -1) {
+					bx.addClass("r270");
+				}
+				if( item.orientation.indexOf("180") != -1) {
+					bx.addClass("r180");
+				}
 			    $("#myModal").lightbox();
 			});
 			td.append(href);
@@ -239,21 +303,6 @@ elem.bind('change', function() {
 	searchFoto();
 });
 
-
-var elem = $('#scan');
-elem.on('click', function(e) {
-	var url = "/?cmd=scan&path=" + $('#path').val();
-	console.log(url);
-	$.ajax({
-		  type: 'GET',
-		  url: url,
-		  async: true,
-		  success: function(response){
-			  console.log("scan result: " + response);
-		  },
-	});	
-});
-
 var elem = $('#Next');
 elem.on('click', function(e) {
 	page++;
@@ -300,13 +349,24 @@ $('#ping').on('click', function(e) {
 	});
 });
 
-
-jwerty.key('→', function () { 
-	page++;
-	searchFoto();
+$('#menuImport').on('click', function(e) {
+	$('#modalImport').modal();
 });
 
-jwerty.key('shift+→', function () {
+$('#importStart').on('click', function(e) {
+	var url = "/?cmd=import&path=" + $('#importPath').val() + "&pattern=" + $('#importPattern').val();
+	$.getJSON(url, function(r){
+		_note(r.code, r.msg);
+		});
+});
+
+
+jwerty.key('shift+→', function () { 
+	page++;
+	searchFoto();
+}, this, "body");
+
+jwerty.key('shift+ctrl+→', function () {
 	img_on_page++;
 	if( img_on_page > 5) {
 		img_on_page = 0;
@@ -314,19 +374,20 @@ jwerty.key('shift+→', function () {
 	var li = $('#output ul').children().get(img_on_page);
 	var f = $(li).data('path');
 	$("#overlay_img").attr('src',"?cmd=get&path=" + f);
-});
+}, this, "#myModal");
 
-jwerty.key('←', function () { 
+jwerty.key('shift+←', function () { 
 	page--;
 	searchFoto();
-});
+}, this, "body");
 
 var tst = {"code":"info","msg":"Welcome to Foto Workflow. Nice to see you."};
 _note(tst.code, tst.msg);
 
-Zepto(function($){
+Zepto(function($){ // - page ready
 	page = 1;
 	searchFoto();
+	_readImportPattern();
 });
 </script>
 
