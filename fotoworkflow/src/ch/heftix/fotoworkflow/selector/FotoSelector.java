@@ -15,6 +15,8 @@ import java.net.SocketAddress;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.simpleframework.http.Query;
 import org.simpleframework.http.Request;
@@ -36,6 +38,7 @@ public class FotoSelector implements Container {
 	private Map<String, WebCommand> commands = new HashMap<String, WebCommand>();
 	protected FotoDB db = null;
 	public EvernoteUtil oAuthState = new EvernoteUtil();
+	public Queue<String> queue = new ConcurrentLinkedQueue<>();
 
 	public FotoSelector() throws Exception {
 		db = new FotoDB();
@@ -50,18 +53,16 @@ public class FotoSelector implements Container {
 		Connection connection = new SocketConnection(server);
 		SocketAddress address = new InetSocketAddress(1994);
 
-		fs.register("list", new SearchFotoCommand(fs));
 
-		WebCommand getCommand = new GetCommand();
-		fs.register("get", getCommand);
+		fs.register("list", new SearchFotoCommand(fs)); // list search fotos
+		fs.register("get", new GetCommand()); // get a single photo
 
-		WebCommand defaultCommand = new GetCLCommand(fs);
-		fs.register("default", defaultCommand);
+		fs.register("default", new GetCLCommand(fs)); // file via class loader
 
-		fs.register("thumbnail", new GetThumbnailCommand(fs));
-		fs.register("scan", new ScanCommand(fs));
+		fs.register("thumbnail", new GetThumbnailCommand(fs)); // get small
+		fs.register("import", new ImportCommand(fs));  // import
 
-		fs.register("store", new UpdateCommand(fs));
+		fs.register("store", new UpdateCommand(fs)); // save attribute
 
 		fs.register("evernote-oauth", new OAuthCommand(fs));
 		fs.register("evernote-verify", new EvernoteVerifyCommand(fs));
@@ -69,7 +70,11 @@ public class FotoSelector implements Container {
 
 		fs.register("invalidate_thumbnail", new InvalidateThumbnailCommand(fs));
 
-		fs.register("ping", new PingCommand());
+		fs.register("ping", new PingCommand(fs)); // verify app alive
+		
+		fs.register("cfg.get", new GetConfigCommand(fs)); // get config
+		
+		fs.register("msg.next", new NextMessageCommand(fs));
 
 		connection.connect(address);
 
@@ -132,5 +137,4 @@ public class FotoSelector implements Container {
 			e.printStackTrace();
 		}
 	}
-
 }
