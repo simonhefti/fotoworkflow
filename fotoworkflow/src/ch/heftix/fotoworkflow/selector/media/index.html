@@ -1,11 +1,10 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <title>Foto Selector</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link href="css/bootstrap.min.css" rel="stylesheet">
-<link href="css/bootstrap-responsive.min.css" rel="stylesheet">
-<link href="css/bootstrap-lightbox.min.css" rel="stylesheet">
+<link href="css/bootstrap-glyphicons.css" rel="stylesheet">
 
 <script src="js/zepto.min.js"></script>
 <script src="js/data.js"></script>
@@ -16,9 +15,12 @@ window.jQuery = Zepto;
 <script src="js/jsOAuth.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/jwerty.js"></script>
-<script src="js/bootstrap-lightbox.min.js"></script>
 
 <style type="text/css">
+.h300
+{
+    height: 360px;
+}
 .r90
 {
     -moz-transform:rotate(90deg);
@@ -34,58 +36,86 @@ window.jQuery = Zepto;
     -moz-transform:rotate(270deg);
     -webkit-transform:rotate(270deg);
 }
+.w60 {
+	width: 60%;
+}
+#query {
+	width: 30%;
+}
+.alert {
+	padding: 5px 35px 5px 5px;
+}
+
 </style>
 
 </head>
+
 <body>
 
-<div>
-  <input id="query" type="text" class="input-xlarge search-query">
-      <a id="Prev1" class="btn" href="#"><i class="icon-step-backward"></i></a>
-      <a id="Prev" class="btn" href="#"><i class="icon-circle-arrow-left"></i></a>
-      <a id="Next" class="btn" href="#"><i class="icon-circle-arrow-right"></i></a>
-  <a id='doc-all' class='btn' href="#"><i class='icon-thumbs-down' title='mark all as documentary'></i></a>
-  
-<div class="btn-group">
-  <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-    <i class='icon-wrench'></i>
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu">
-    <li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
-    <li><a id="menuImport" href="#"> Import more Photos</a></li>
-    <li><a id="ping" href="#"> Ping</a></li>
-  </ul>
-</div>
-<div id="msgbox">
+<div class="form-inline">
+	<input id="query" type="text" class="form-control input-xlarge search-query">
+	<a id="Prev1" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-step-backward"></span></a>  
+	<a id="Prev" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
+	<a id="Next" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-right"></span></a>
+	<a id='doc-all' class='btn btn-primary btn-small' href="#"><span class="glyphicon glyphicon-thumbs-down"></span></a>
+
+	<div class="btn-group">
+		<a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
+			<span class="glyphicon glyphicon-icon-wrench"></span>
+    		<span class="caret"></span>
+  		</a>
+  		<ul class="dropdown-menu">
+    		<li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
+	    	<li><a id="menuImport" href="#"> Import Photos</a></li>
+	    	<li><a id="ping" href="#"> Ping</a></li>
+	    	<li><a id="grid2_4" href="#"> 2 &times; 4</a></li>
+	    	<li><a id="grid1_1" href="#"> 1 &times; 1</a></li>
+		</ul>
+	</div>
+	<div id="msgbox"></div>
 </div>
 
-<div id="modalImport" class="modal hide fade">
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-    <h3>Import more photos</h3>
-  </div>
-  <div class="modal-body">
-<form class="form-horizontal">
-  <div class="control-group">
-    <label class="control-label" for="importPath">Path</label>
-    <div class="controls">
-      <input type="text" id="importPath" class="input-xlarge" placeholder="Where to import your photos from (path)">
-    </div>
-  </div>
-  <div class="control-group">
-    <label class="control-label" for="importPattern">Foto Naming Pattern</label>
-    <div class="controls">
-      <input type="text" id="importPattern" class="input-xlarge" placeholder="/@{CreationDate: yyyy}/@{Model}/@{CreationDate: yyyy-MM}/@{CreationDate: yyyy-MM-dd'T'HHmm}_@{Filename}@{Unique}.@{Extension}">
-    </div>
-  </div>
-</form>
-  </div>
-  <div class="modal-footer">
-    <a href="#" class="btn">Close</a>
-    <a id="importStart" href="#" class="btn btn-primary">Start import</a>
-  </div>
-</div>
+<div id="output" ></div>
+
+<div id="modalImport" class="modal fade" id="myModal">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+				<h4 class="modal-title">Import photos</h4>
+        	</div>
+        	<div class="modal-body">
+        	
+	<form class="form-horizontal">
+	  <div class="form-group">
+	    <label class="col-lg-2 control-label" for="importPath">Path</label>
+	    <div class="col-lg-10">
+	      <input type="text" id="importPath" class="form-control" placeholder="Where to import your photos from (path)">
+	    </div>
+	  </div>
+	  <div class="form-group">
+	    <label class="col-lg-2 control-label" for="importPattern">Pattern</label>
+	    <div class="col-lg-10">
+	      <input type="text" id="importPattern" class="form-control" placeholder="/@{CreationDate: yyyy}/@{Model}/@{CreationDate: yyyy-MM}/@{CreationDate: yyyy-MM-dd'T'HHmm}_@{Filename}@{Unique}.@{Extension}">
+	    </div>
+	  </div>
+	  <div class="form-group">
+	    <label class="col-lg-2 control-label" for="importNote">Note</label>
+	    <div class="col-lg-10">
+	      <input type="text" id="importNote" class="form-control" placeholder="set this note for each photo">
+	    </div>
+	  </div>
+	</form>
+
+        	
+	        </div>
+    	    <div class="modal-footer">
+        		<a id="importStart" href="#" class="btn btn-primary">Start import</a>
+        	</div>
+    	</div><!-- /.modal-content -->
+	</div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
 
 <div id="myModal" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true" width="600px">
 	<div class='lightbox-header'>
@@ -97,24 +127,55 @@ window.jQuery = Zepto;
 </div>
 
 
-<div id="output" />
-
 
 <script>
 
 var page = 1;
 var img_on_page = 0;
+var cols = 4;
+var rows = 2;
 
+var _notes = [];
+var _lastNote = 0;
+
+var _showNote = function() {
+	var now = new Date();
+	var diff = now - _lastNote; 
+	console.log("_showNote: " + now + " " + diff + " len: " + _notes.length);
+	if( _notes.length > 0) {
+		if( diff < 1000) {
+			// console.log("_showNote: diff too small - setting new timeout");
+			setTimeout(_showNote,2000);
+		}
+		else {
+			var n = _notes.shift();
+			// console.log("_showNote: new note: %s",n.text);
+			var style = 'alert-success';
+			if( "info" == n.code) {
+				style = 'alert-info';
+			}
+			if( "error" == n.code) {
+				style = 'alert-error';
+			}
+			$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+n.text+'</span></div>');
+			_lastNote = now;
+			if( _notes.length > 0) {
+				// console.log("_showNote: have more notes, setting new timeout");
+				setTimeout(_showNote,2000);
+			}
+		}
+	}
+}	
 var _note = function(code, text) {
 	// console.log("_note: " + code + " " + text);
-	var style = 'alert-success';
-	if( "info" == code) {
-		style = 'alert-info';
+	if( undefined == code || undefined == text) {
+		return;
 	}
-	if( "error" == code) {
-		style = 'alert-error';
-	}
-	$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+text+'</span></div>');
+	var n = {};
+	n.code = code;
+	n.text = text;
+	_notes.push(n);
+	_showNote();
 }
 
 var _rotate = function rotate(el, ang, parent) {
@@ -154,8 +215,8 @@ var _setRotation = function setRotation(path, angle, img) {
 }
 
 var _qualificationButton = function(item, iconName, category) {
-	var bDoc = $("<a class='btn btn-mini' href='#'></a>");
-	var icn = $("<i class='" + iconName + "' title='" + category + "'></i>");
+	var bDoc = $("<a class='btn btn-primary btn-mini' href='#'></a>");
+	var icn = $("<span class='glyphicon glyphicon-" + iconName + "' title='" + category + "'></span>");
 	bDoc.append(icn);
 	if( category == item.category) {
 		bDoc.addClass("btn-inverse");
@@ -170,8 +231,8 @@ var _qualificationButton = function(item, iconName, category) {
 }
 
 var _evernote_link = function(item) {
-	var bDoc = $("<a class='btn btn btn-mini' href='#'></a>");
-	var icn = $("<i class='icon-magnet' title='Evernote Sync'></i>");
+	var bDoc = $("<a class='btn btn-primary btn-mini' href='#'></a>");
+	var icn = $("<span class='glyphicon glyphicon-magnet' title='Evernote Sync'></span>");
 	bDoc.append(icn);
 	if( undefined != item.noteId && item.noteId.length > 1) {
 		bDoc.addClass("btn-inverse");
@@ -190,18 +251,22 @@ var _evernote_link = function(item) {
 }
 
 var searchFoto = function searchFoto() {
-	var url = "/?cmd=list&st=" + $('#query').val() + "&p="+page;
+	var n = rows * cols;
+	var url = "/?cmd=list&st=" + $('#query').val() + "&p="+page+"&n="+n;
+	console.log("search: url: " + url);
 	$.getJSON(url,function(data){
-		var twitterList = $( "<ul class='thumbnails'/>" );
+		var twitterList = $( "<div class='row'/>" );
 		$( "#output" ).empty();
 		if( "ok" != data.code) {
 			_note(data.code, data.msg);
 		}
 		$.each( data.payload, function( index, item ) {
-			var tr = $( "<li class='span4'/>" );
+			var tr = $( "<div class='col-lg-3'/>" );
+			if( 1 == cols ) {
+				tr = $( "<div class='col-lg-12'/>" );
+			}
 			tr.data('path',item.path);
-
-			var td = $("<div class='thumbnail' />");
+			var td = $("<div class='h300 thumbnail' />");
 			tr.append(td);
 			
 			var href = $("<a href='#'></a>");
@@ -228,10 +293,12 @@ var searchFoto = function searchFoto() {
 			});
 			td.append(href);
 
+			//var img = $("<img class='h300' src='" + item.thumbnail + "'>");
 			var img = $("<img src='" + item.thumbnail + "'>");
 			href.append(img);
+			console.log("foto:", item.thumbnail);
 
-			var ip = $("<input />", { type:"text" })
+			var ip = $("<input class='form-control w60' />", { type:"text" })
 			if (typeof(item.note) != "undefined" && item.note.length > 0) {
 				ip.val(item.note);
 			}
@@ -269,16 +336,16 @@ var searchFoto = function searchFoto() {
 			
 			// -- qualifications --
 			
-			var bDoc = _qualificationButton(item, 'icon-thumbs-down', 'documentary');
+			var bDoc = _qualificationButton(item, 'thumbs-down', 'documentary');
 			commands.append(bDoc);
 			
-			var bDoc = _qualificationButton(item, 'icon-star-empty', 'normal');
+			var bDoc = _qualificationButton(item, 'star-empty', 'normal');
 			commands.append(bDoc);
 
-			var bDoc = _qualificationButton(item, 'icon-thumbs-up', 'selection');
+			var bDoc = _qualificationButton(item, 'thumbs-up', 'selection');
 			commands.append(bDoc);
 
-			var bDoc = _qualificationButton(item, 'icon-star', 'best-of');
+			var bDoc = _qualificationButton(item, 'star', 'best-of');
 			commands.append(bDoc);
 			
 			// evernote
@@ -342,11 +409,28 @@ elem.on('click', function(e) {
   });  
 });
 
+
+var _readMessageState = 1;
+
+function _readNextMessage() {
+	var url = "/?cmd=msg.next";
+	$.getJSON(url, function(r){
+		// console.log("_readNextMessage: " + r);
+		_note("info", r.msg);
+	});
+	if( 1 == _readMessageState) {
+		setTimeout(_readNextMessage,1000);
+	}
+}
+
 $('#ping').on('click', function(e) {
-	var url = "/?cmd=ping"
+	var url = "/?cmd=ping";
+	_readMessageState = 1;
+	_readNextMessage();
 	$.getJSON(url, function(r){
 		_note(r.code, r.msg);
 	});
+	_readMessageState = 0;
 });
 
 $('#menuImport').on('click', function(e) {
@@ -354,12 +438,38 @@ $('#menuImport').on('click', function(e) {
 });
 
 $('#importStart').on('click', function(e) {
-	var url = "/?cmd=import&path=" + $('#importPath').val() + "&pattern=" + $('#importPattern').val();
+	var url = "/?cmd=import&path=" + $('#importPath').val() + "&pattern=" + $('#importPattern').val() + "&note=" + $('#importNote').val();
+	_readMessageState = 1;
+	_readNextMessage();
+	$('#modalImport').modal('hide');
 	$.getJSON(url, function(r){
 		_note(r.code, r.msg);
-		});
+	});
+	_readMessageState = 0;
 });
 
+function setRowsCols(r, c) {
+	rows = r;
+	cols = c;
+	console.log("rows: %d, cols: %d", rows, cols);
+	searchFoto();
+}
+
+$('#grid2_4').on('click', function(e) {
+	setRowsCols(2,4);
+});
+
+$('#grid1_1').on('click', function(e) {
+	setRowsCols(1,1);
+});
+
+jwerty.key('shift+1', function () { 
+	setRowsCols(1,1);
+}, this, "body");
+
+jwerty.key('shift+4', function () { 
+	setRowsCols(2,4);
+}, this, "body");
 
 jwerty.key('shift+→', function () { 
 	page++;
