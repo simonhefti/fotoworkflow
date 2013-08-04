@@ -230,11 +230,11 @@ public class FotoDB {
 		return res;
 	}
 
-	public void insertFoto(File f) throws IOException, SQLException {
-		insertFoto(conn, f);
+	public void insertFoto(File f, String note) throws IOException, SQLException {
+		insertFoto(conn, f, note);
 	}
 
-	public void insertFoto(Connection c, File f) throws IOException, SQLException {
+	public void insertFoto(Connection c, File f, String note) throws IOException, SQLException {
 
 		if (null == f) {
 			return;
@@ -269,8 +269,14 @@ public class FotoDB {
 		int h = mdh.getHeight(md);
 
 		QueryRunner qr = new QueryRunner();
-		String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation) values (?,?,?,?,?,?,?,?)";
-		qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o);
+
+		if (null != note && note.length() > 1) {
+			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation, note) values (?,?,?,?,?,?,?,?,?,?,?)";
+			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o, note);
+		} else {
+			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation) values (?,?,?,?,?,?,?,?,?,?)";
+			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o);
+		}
 
 	}
 
@@ -370,10 +376,13 @@ public class FotoDB {
 		QueryRunner qr = new QueryRunner();
 
 		if (searchTerm.length() < 1) {
-			res = qr.query(conn, "select " + fotoattrs + " from foto order by creationdate", rsh);
+			String sql = "select " + fotoattrs + " from foto order by creationdate";
+			// System.out.println("sql: " + sql);
+			res = qr.query(conn, sql, rsh);
 		} else {
-			res = qr.query(conn, "select " + fotoattrs + " from foto where foto match ? order by creationdate", rsh,
-					searchTerm);
+			String sql = "select " + fotoattrs + " from foto where foto match ? order by creationdate";
+			// System.out.println("sql: " + sql + " searchterm: " + searchTerm);
+			res = qr.query(conn, sql, rsh, searchTerm);
 		}
 
 		return res;
@@ -505,10 +514,11 @@ public class FotoDB {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
 		if (rotate != 0) {
-			// note("i rotate(%d) due to %s for %s", rotate, f.orientation, f.path);
-			if( 90 == rotate || 270 == rotate ) {
-				height = (int)Math.round(height / 1.4);
-			}
+			// note("i rotate(%d) due to %s for %s", rotate, f.orientation,
+			// f.path);
+			// if( 90 == rotate || 270 == rotate ) {
+			// height = (int)Math.round(height / 1.45);
+			// }
 			Thumbnails.of(is).useExifOrientation(false).dithering(Dithering.ENABLE).outputQuality(.9)
 					.size(height, height).rotate(rotate).toOutputStream(baos);
 		} else {
