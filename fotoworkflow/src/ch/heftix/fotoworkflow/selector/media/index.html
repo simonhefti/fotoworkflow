@@ -219,13 +219,13 @@ var _qualificationButton = function(item, iconName, category) {
 	var icn = $("<span class='glyphicon glyphicon-" + iconName + "' title='" + category + "'></span>");
 	bDoc.append(icn);
 	if( category == item.category) {
-		bDoc.addClass("btn-inverse");
-		icn.addClass("icon-white");
+		bDoc.removeClass("btn-primary");
+		bDoc.addClass("btn-default");
 	}
 	bDoc.on('click', function(e) {
 		_save(item.path,"category", category);
-		bDoc.addClass("btn-inverse");
-		icn.addClass("icon-white");
+		bDoc.removeClass("btn-primary");
+		bDoc.addClass("btn-default");
 	});
 	return bDoc;
 }
@@ -235,8 +235,8 @@ var _evernote_link = function(item) {
 	var icn = $("<span class='glyphicon glyphicon-magnet' title='Evernote Sync'></span>");
 	bDoc.append(icn);
 	if( undefined != item.noteId && item.noteId.length > 1) {
-		bDoc.addClass("btn-inverse");
-		icn.addClass("icon-white");
+		bDoc.removeClass("btn-primary");
+		bDoc.addClass("btn-default");
 	}
 	bDoc.on('click', function(e) {
 		var url = "/?cmd=evernote-link&path=" + item.path;
@@ -244,8 +244,8 @@ var _evernote_link = function(item) {
 			// console.log("evernote-link result: %o", response);
 			_note(response.code, response.msg);
 		});
-		bDoc.addClass("btn-inverse");
-		icn.addClass("icon-white");
+		bDoc.removeClass("btn-primary");
+		bDoc.addClass("btn-default");
 	});
 	return bDoc;
 }
@@ -266,36 +266,18 @@ var searchFoto = function searchFoto() {
 				tr = $( "<div class='col-lg-12'/>" );
 			}
 			tr.data('path',item.path);
-			var td = $("<div class='h300 thumbnail' />");
-			tr.append(td);
 			
-			var href = $("<a href='#'></a>");
-			href.data('path',item.path);
-			href.bind('click', function () {
-			    var t = $(this); // get the current value of the input field.
-			    var src = t.data('path');
-			    var oi = $("#overlay_img"); 
-				oi.attr('src',"?cmd=get&path=" + src);
-			    var bx = $("#myModal"); 
-				bx.removeClass("r90");
-				bx.removeClass("r180");
-				bx.removeClass("r270");
-				if( item.orientation.indexOf("90 CW") != -1) {
-					bx.addClass("r90");
-				}
-				if( item.orientation.indexOf("270 CW") != -1) {
-					bx.addClass("r270");
-				}
-				if( item.orientation.indexOf("180") != -1) {
-					bx.addClass("r180");
-				}
-			    $("#myModal").lightbox();
-			});
-			td.append(href);
+			var td = $("<div class='h300 thumbnail' />");
+			if( 1 == cols ) {
+				td = $("<div class='thumbnail' />");
+			}
+			tr.append(td);
 
-			//var img = $("<img class='h300' src='" + item.thumbnail + "'>");
 			var img = $("<img src='" + item.thumbnail + "'>");
-			href.append(img);
+			if( 1 == cols ) {
+				img = $("<img src='" + item.scaled_to_screen + "'>");
+			}
+			td.append(img);
 			console.log("foto:", item.thumbnail);
 
 			var ip = $("<input class='form-control w60' />", { type:"text" })

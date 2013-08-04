@@ -113,6 +113,7 @@ public class FotoDB {
 			StringBuffer sb = new StringBuffer(1024);
 			sb.append("{");
 			sb.append("\"thumbnail\":" + "\"/?cmd=thumbnail&path=" + path + "\"");
+			sb.append(",\"scaled_to_screen\":" + "\"/?cmd=thumbnail&w=800&path=" + path + "\"");
 			sb.append(",\"image\":" + "\"/?cmd=get&path=" + path + "\"");
 			sb.append(",\"path\":\"" + path + "\"");
 			if (null != orientation) {
