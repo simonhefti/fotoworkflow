@@ -53,14 +53,13 @@ public class FotoSelector implements Container {
 		Connection connection = new SocketConnection(server);
 		SocketAddress address = new InetSocketAddress(1994);
 
-
 		fs.register("list", new SearchFotoCommand(fs)); // list search fotos
 		fs.register("get", new GetCommand()); // get a single photo
 
 		fs.register("default", new GetCLCommand(fs)); // file via class loader
 
 		fs.register("thumbnail", new GetThumbnailCommand(fs)); // get small
-		fs.register("import", new ImportCommand(fs));  // import
+		fs.register("import", new ImportCommand(fs)); // import
 
 		fs.register("store", new UpdateCommand(fs)); // save attribute
 
@@ -71,10 +70,13 @@ public class FotoSelector implements Container {
 		fs.register("invalidate_thumbnail", new InvalidateThumbnailCommand(fs));
 
 		fs.register("ping", new PingCommand(fs)); // verify app alive
-		
+
 		fs.register("cfg.get", new GetConfigCommand(fs)); // get config
-		
+
 		fs.register("msg.next", new NextMessageCommand(fs));
+
+		fs.register("update-phash", new UpdatePHashCommand(fs));
+		fs.register("update-phashs", new UpdatePHashsCommand(fs));
 
 		connection.connect(address);
 

@@ -30,7 +30,9 @@ create virtual table foto using fts4 (
   geo_lat text, -- latitude in degrees, e.g. 40.0 (south is negative)
   orientation text,  -- orientation hint, e.g. right side (Rotate 180)
   category text, -- likes, e.g. best-of
-  note text
+  note text, -- a description of the image
+  phash text, -- for similarity detection
+  isMissing int -- flag
 );
 
 -- used to keep track of current schema version

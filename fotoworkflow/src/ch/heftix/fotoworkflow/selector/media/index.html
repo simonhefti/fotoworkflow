@@ -61,7 +61,7 @@ window.jQuery = Zepto;
 
 	<div class="btn-group">
 		<a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
-			<span class="glyphicon glyphicon-icon-wrench"></span>
+			<span class="glyphicon glyphicon-wrench"></span>
     		<span class="caret"></span>
   		</a>
   		<ul class="dropdown-menu">
@@ -186,6 +186,7 @@ var _rotate = function rotate(el, ang, parent) {
 
 var _save = function(path, k, v) {
 	var url = "/?cmd=store&path=" + path + "&k=" + k + "&v="+v;
+	// console.log("saving %s for %s of %s", v, k, path);
 	$.get(url, function(response){
 		_note("info", "saved " + v + " for " + path);
 	});
@@ -273,12 +274,12 @@ var searchFoto = function searchFoto() {
 			}
 			tr.append(td);
 
-			var img = $("<img src='" + item.thumbnail + "'>");
+			var img = $("<img src='" + item.thumbnail + "' title='" + item.path + "'>");
 			if( 1 == cols ) {
-				img = $("<img src='" + item.scaled_to_screen + "'>");
+				img = $("<img src='" + item.scaled_to_screen + + "' title='" + item.path + "'>");
 			}
 			td.append(img);
-			console.log("foto:", item.thumbnail);
+			// console.log("foto:", item.thumbnail);
 
 			var ip = $("<input class='form-control w60' />", { type:"text" })
 			if (typeof(item.note) != "undefined" && item.note.length > 0) {
@@ -286,8 +287,7 @@ var searchFoto = function searchFoto() {
 			}
 			ip.bind('change', function() { 
 			    var f = $(this) // get the current value of the input field.
-			    var tr = f.closest("li");
-				_save(tr.data("path"), "note", f.val());
+				_save(item.path, "note", f.val());
 			});
 			td.append(ip);
 
@@ -302,10 +302,7 @@ var searchFoto = function searchFoto() {
 			
 			var b270 = $("<button class='btn btn-info btn-mini' type='button'>L</button>");
 			b270.on('click', function(e) {
-			    var f = $(this) // get the current value of the input field.
-			    var tr = f.closest("li");
-			    var path = tr.data("path");
-				_setRotation(path, "270 CW", img);
+				_setRotation(item.path, "270 CW", img);
 			});
 			commands.append(b270);
 			
@@ -346,10 +343,16 @@ elem.on('click', function(e) {
 	searchFoto();
 });
 
-var elem = $('#query');
-elem.bind('change', function() { 
+$('#query').bind('change', function() { 
 	page = 1;
 	searchFoto();
+});
+
+$('#query').bind('keyup', function (e) {
+  if (e.keyCode == 13) {
+		page = 1;
+		searchFoto();
+    }
 });
 
 var elem = $('#Next');
@@ -382,9 +385,8 @@ elem.on('click', function(e) {
 	searchFoto();
 });
 
-var elem = $('#doc-all');
-elem.on('click', function(e) {
-  $('#output ul li').each(function(index) {
+$('#doc-all').on('click', function(e) {
+  $('#output div div').each(function(index) {
 	  var v = $(this);
 	  var f = v.data('path');
 	  _save(f,"category", "documentary");
@@ -419,6 +421,13 @@ $('#menuImport').on('click', function(e) {
 	$('#modalImport').modal();
 });
 
+function updatePHashs() {
+	var url = "/?cmd=update-phashs";
+	$.getJSON(url, function(r){
+		_note(r.code, r.msg);
+	});
+}
+
 $('#importStart').on('click', function(e) {
 	var url = "/?cmd=import&path=" + $('#importPath').val() + "&pattern=" + $('#importPattern').val() + "&note=" + $('#importNote').val();
 	_readMessageState = 1;
@@ -426,6 +435,7 @@ $('#importStart').on('click', function(e) {
 	$('#modalImport').modal('hide');
 	$.getJSON(url, function(r){
 		_note(r.code, r.msg);
+		updatePHashs();
 	});
 	_readMessageState = 0;
 });

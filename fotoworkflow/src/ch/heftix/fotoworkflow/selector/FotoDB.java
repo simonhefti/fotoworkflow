@@ -63,7 +63,7 @@ public class FotoDB {
 	String pCreationDate = "@{CreationDate: yyyy-MM-dd'T'HHmm}";
 	String pModel = "@{Model}";
 
-	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note";
+	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing";
 
 	public class Thumbnail {
 		public String path;
@@ -86,6 +86,10 @@ public class FotoDB {
 		public String geo_long;
 		public String geo_lat;
 		public String creationdate;
+		public String phash;
+		public int isMissing = 0;
+
+		public static final String defaultHash = "1111111111111111";
 
 		public String getDescription() {
 			String res = "Foto";
@@ -145,6 +149,10 @@ public class FotoDB {
 			if (null != note) {
 				sb.append(",\"note\":\"" + note + "\"");
 			}
+			if (null != phash) {
+				sb.append(",\"phash\":\"" + phash + "\"");
+			}
+			sb.append(",\"isMissing\":\"" + isMissing + "\"");
 			sb.append("}");
 			return sb.toString();
 		}
@@ -268,15 +276,17 @@ public class FotoDB {
 		String o = mdh.format(f, md, "@{Orientation}");
 		int w = mdh.getWidth(md);
 		int h = mdh.getHeight(md);
+		String phash = Foto.defaultHash;
+		int isMissing = 0;
 
 		QueryRunner qr = new QueryRunner();
 
 		if (null != note && note.length() > 1) {
-			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation, note) values (?,?,?,?,?,?,?,?,?,?,?)";
-			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o, note);
+			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation, note, phash, isMissing) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o, note, phash, isMissing);
 		} else {
-			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation) values (?,?,?,?,?,?,?,?,?,?)";
-			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o);
+			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation, phash, isMissing) values (?,?,?,?,?,?,?,?,?,?,?,?)";
+			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o, phash, isMissing);
 		}
 
 	}
@@ -295,6 +305,67 @@ public class FotoDB {
 		QueryRunner qr = new QueryRunner();
 		String sql = "update foto set creationdate=? where path=?";
 		qr.update(c, sql, cd, path);
+	}
+
+	protected void updatePHashs() throws IOException, SQLException {
+
+		String sql = "select path from foto where phash='" + Foto.defaultHash + "'";
+
+		ResultSetHandler<List<String>> rsh = new ResultSetHandler<List<String>>() {
+			public List<String> handle(ResultSet rs) throws SQLException {
+				List<String> res = new ArrayList<>();
+				while (rs.next()) {
+					res.add(rs.getString(1));
+				}
+				return res;
+			}
+		};
+
+		QueryRunner qr = new QueryRunner();
+		List<String> paths = qr.query(conn, sql, rsh);
+
+		int cnt = 0;
+
+		for (String p : paths) {
+			updatePHash(p);
+			cnt++;
+			if (cnt % 1000 == 0) {
+				System.out.println(String.format("cnt: %d", cnt));
+			}
+		}
+	}
+
+	protected void updatePHash(String path) throws IOException, SQLException {
+		updatePHash(this.conn, path);
+	}
+
+	protected void updatePHash(Connection c, String path) throws IOException, SQLException {
+
+		if (null == path) {
+			return;
+		}
+
+		if (path.length() < 1) {
+			return;
+		}
+
+		File f = new File(path);
+		if (!f.exists()) {
+			return;
+		}
+		PHash ph = new PHash();
+		FileInputStream fis = new FileInputStream(f);
+		String h = Foto.defaultHash;
+		try {
+			h = ph.getHash(fis);
+		} catch (Exception e) {
+			// TODO
+			e.printStackTrace();
+		}
+
+		QueryRunner qr = new QueryRunner();
+		String sql = "update foto set phash=? where path=?";
+		qr.update(c, sql, h, path);
 	}
 
 	protected void fixFilenameRepetitions(Connection c, String path) throws IOException, SQLException {
@@ -377,11 +448,11 @@ public class FotoDB {
 		QueryRunner qr = new QueryRunner();
 
 		if (searchTerm.length() < 1) {
-			String sql = "select " + fotoattrs + " from foto order by creationdate";
+			String sql = "select " + fotoattrs + " from foto where isMissing=0 order by creationdate";
 			// System.out.println("sql: " + sql);
 			res = qr.query(conn, sql, rsh);
 		} else {
-			String sql = "select " + fotoattrs + " from foto where foto match ? order by creationdate";
+			String sql = "select " + fotoattrs + " from foto where isMissing=0 and foto match ? order by creationdate";
 			// System.out.println("sql: " + sql + " searchterm: " + searchTerm);
 			res = qr.query(conn, sql, rsh, searchTerm);
 		}
@@ -405,6 +476,8 @@ public class FotoDB {
 		f.orientation = rs.getString(11);
 		f.category = rs.getString(12);
 		f.note = rs.getString(13);
+		f.phash = rs.getString(14);
+		f.isMissing = rs.getInt(15);
 		return f;
 	}
 
