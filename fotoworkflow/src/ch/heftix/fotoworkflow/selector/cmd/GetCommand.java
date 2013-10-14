@@ -8,28 +8,29 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.tika.metadata.Metadata;
 import org.simpleframework.http.Query;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
-import ch.heftix.fotoworkflow.selector.FotoDB.Thumbnail;
+import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
 
 /**
- * get (or create) thumbnail from cache
- *
+ * deliver file from file system
  */
-public class GetThumbnailCommand implements WebCommand {
+public class GetCommand implements WebCommand {
 
-	FotoSelector fs = null;
-
-	public GetThumbnailCommand(FotoSelector fs) {
-		this.fs = fs;
-	}
+	private TikaMetadataHelper mdh = new TikaMetadataHelper();
+	Pattern reExtensionFilter = Pattern.compile("JPG|JPEG|jpeg|jpg");
 
 	public void handle(Request request, Response response) {
 
@@ -37,15 +38,9 @@ public class GetThumbnailCommand implements WebCommand {
 
 			Query q = request.getQuery();
 			String path = (String) q.get("path");
-			String width = (String) q.get("w");
-			int w = 300;
-			
+
 			if (null == path) {
 				return;
-			}
-			
-			if( null != width ) {
-				w = Integer.parseInt(width);
 			}
 
 			File f = new File(path);
@@ -53,14 +48,28 @@ public class GetThumbnailCommand implements WebCommand {
 				return;
 			}
 
-			Thumbnail thumbnail = fs.db.getThumbnail(f, w);
+			String ext = mdh.getExtension(f);
+			Matcher m = reExtensionFilter.matcher(ext);
+
+			if (!m.matches()) {
+				return;
+			}
 
 			OutputStream os = response.getOutputStream();
 
-			response.setValue("Content-Type", thumbnail.mimeType);
+			InputStream is = new FileInputStream(f);
+
+			Metadata md = mdh.readMetadata(f);
+			response.setValue("Content-Type", mdh.getMimeType(md));
 			response.setDate("Last-Modified", f.lastModified());
 
-			os.write(thumbnail.image);
+			byte[] buf = new byte[2 << 16];
+			int read = is.read(buf);
+			while (read > 0) {
+				os.write(buf, 0, read);
+				read = is.read(buf);
+			}
+			is.close();
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

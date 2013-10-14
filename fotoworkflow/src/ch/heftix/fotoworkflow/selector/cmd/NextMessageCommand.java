@@ -8,38 +8,58 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
-
-import java.util.Date;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
+import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
+import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
- * test response
+ * search foto within foto index
  */
-public class PingCommand implements WebCommand {
+public class NextMessageCommand implements WebCommand {
 
 	FotoSelector fs = null;
-	
-	public PingCommand(FotoSelector fs) {
+
+	public NextMessageCommand(FotoSelector fs) throws Exception {
 		this.fs = fs;
 	}
 
 	public void handle(Request request, Response response) {
-		
-		fs.queue.add("ping queue " + System.currentTimeMillis());
-		JsonResponse jr = new JsonResponse();
-		jr.code = "info";
-		jr.msg = "Thanks for asking. I'm doing fine. Time: " + new Date();
+
 		try {
+
+			JsonResponse jr = new JsonResponse();
+
+			StringBufferPayload pl = new StringBufferPayload();
+
+			pl.append("[");
+
+			String msg = fs.queue.poll();
+
+			if (null != msg) {
+				pl.append("{");
+				pl.append("\"msg\": \"" + msg + "\"");
+				pl.append("}");
+			}
+
+			pl.append("]");
+
+			jr.code = "ok";
+			jr.msg = msg;
+			jr.payload = pl;
+
 			JsonHelper.send(jr, response);
+
 		} catch (Exception e) {
-			response.setCode(500);
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		fs.queue.add("ping queue " + System.currentTimeMillis());
+
 	}
+
 }

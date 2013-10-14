@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;

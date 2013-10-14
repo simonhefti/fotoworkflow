@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.io.File;
 import java.util.regex.Pattern;
@@ -18,6 +18,8 @@ import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
+import ch.heftix.fotoworkflow.selector.FotoImport;
+import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 
@@ -70,7 +72,7 @@ public class ImportCommand implements WebCommand {
 			}
 
 			if (ok) {
-				fs.db.setConf("importPattern", pattern); // store for later use
+				fs.setConf("importPattern", pattern); // store for later use
 				// efu.setDryRun();
 				fi.visitAllDirsAndFiles(root);
 				jr.code = "ok";

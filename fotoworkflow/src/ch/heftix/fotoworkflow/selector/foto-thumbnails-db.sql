@@ -35,6 +35,14 @@ create virtual table foto using fts4 (
   isMissing int -- flag
 );
 
+-- distance between fotos
+create table distance (
+  p1 text, -- path 1
+  p2 text,  -- path 2
+  d int
+);
+
+
 -- used to keep track of current schema version
 create table conf (
   k text, -- key

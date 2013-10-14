@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.io.PrintStream;
 
@@ -16,14 +16,16 @@ import org.simpleframework.http.Query;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
+import ch.heftix.fotoworkflow.selector.FotoSelector;
+
 /**
  * update a DB entry for a given foto
  */
-public class UpdatePHashsCommand implements WebCommand {
+public class UpdateCommand implements WebCommand {
 
 	FotoSelector fs = null;
 
-	public UpdatePHashsCommand(FotoSelector fs) throws Exception {
+	public UpdateCommand(FotoSelector fs) throws Exception {
 		this.fs = fs;
 	}
 
@@ -34,8 +36,11 @@ public class UpdatePHashsCommand implements WebCommand {
 			long time = System.currentTimeMillis();
 
 			Query q = request.getQuery();
+			String path = q.get("path");
+			String k = q.get("k");
+			String v = q.get("v");
 
-			fs.db.updatePHashs();
+			fs.storeInfo(path, k, v);
 
 			response.setValue("Content-Type", "text/plain");
 			response.setDate("Last-Modified", time);

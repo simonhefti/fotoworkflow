@@ -19,7 +19,7 @@ import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.WebCommand;
+import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
 
 import com.evernote.edam.notestore.NoteStore;
 import com.evernote.edam.type.Notebook;

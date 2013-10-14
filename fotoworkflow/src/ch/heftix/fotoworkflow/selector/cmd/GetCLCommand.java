@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +20,7 @@ import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
+import ch.heftix.fotoworkflow.selector.FotoSelector;
 
 /**
  * deliver file from class path
@@ -33,11 +34,11 @@ public class GetCLCommand implements WebCommand {
 
 	public GetCLCommand(FotoSelector fs) throws IOException {
 
-		InputStream is = GetCLCommand.class.getResourceAsStream("resources.properties");
+		InputStream is = FotoSelector.class.getResourceAsStream("resources.properties");
 		targetMap.load(is);
 		is.close();
 
-		is = GetCLCommand.class.getResourceAsStream("extensions.properties");
+		is = FotoSelector.class.getResourceAsStream("extensions.properties");
 		extensionMap.load(is);
 		is.close();
 	}
@@ -65,7 +66,7 @@ public class GetCLCommand implements WebCommand {
 				return;
 			}
 
-			InputStream is = GetCLCommand.class.getResourceAsStream(name);
+			InputStream is = FotoSelector.class.getResourceAsStream(name);
 			if (null == is) {
 				PrintStream body = response.getPrintStream();
 				response.setValue("Content-Type", "text/plain");

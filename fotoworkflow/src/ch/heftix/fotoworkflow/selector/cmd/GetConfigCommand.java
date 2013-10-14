@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,6 +17,7 @@ import org.simpleframework.http.Query;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
+import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
@@ -42,7 +43,7 @@ public class GetConfigCommand implements WebCommand {
 			String k = q.get("k");
 			List<String> allowedKeys = Arrays.asList("importPattern");
 			if (allowedKeys.contains(k)) {
-				String t = String.format("{\"%s\": \"%s\"}", k, fs.db.getConf(k));
+				String t = String.format("{\"%s\": \"%s\"}", k, fs.getConf(k));
 				pl.append(t);
 				jr.code = "ok";
 			} else {

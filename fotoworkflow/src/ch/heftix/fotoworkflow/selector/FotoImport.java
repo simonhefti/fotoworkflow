@@ -35,7 +35,7 @@ public class FotoImport {
 
 	public FotoImport(FotoSelector fs, String pattern, String note) {
 		this.fs = fs;
-		this.db = fs.db;
+		this.db = fs.getDB();
 		this.note = note;
 		mdh.setPattern(pattern);
 	}

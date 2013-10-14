@@ -16,7 +16,7 @@ import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.WebCommand;
+import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
 
 public class OAuthCommand implements WebCommand {
 

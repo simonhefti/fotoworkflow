@@ -42,7 +42,6 @@ import org.apache.tika.metadata.Metadata;
 import org.sqlite.SQLiteJDBCLoader;
 
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
-import ch.heftix.fotoworkflow.selector.json.Payload;
 
 public class FotoDB {
 
@@ -64,99 +63,6 @@ public class FotoDB {
 	String pModel = "@{Model}";
 
 	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing";
-
-	public class Thumbnail {
-		public String path;
-		byte[] image;
-		String mimeType;
-		int height;
-	}
-
-	public class Foto implements Payload {
-		public String path;
-		public String mimeType;
-		public String orientation;
-		public int w;
-		public int h;
-		public String category;
-		public String note;
-		public String noteId;
-		public String make;
-		public String model;
-		public String geo_long;
-		public String geo_lat;
-		public String creationdate;
-		public String phash;
-		public int isMissing = 0;
-
-		public static final String defaultHash = "1111111111111111";
-
-		public String getDescription() {
-			String res = "Foto";
-			if (null != note) {
-				res += ", " + note;
-			}
-			if (null != creationdate) {
-				res += ", " + creationdate;
-			}
-			if (null != model && !"NoModel".equals(model)) {
-				res += ", " + model;
-			}
-			if (null != geo_long && !"NoLongitude".equals(geo_long)) {
-				Double d = Double.parseDouble(geo_long);
-				res += ", " + String.format("%.1f", d);
-			}
-			if (null != geo_lat && !"NoLatitude".equals(geo_lat)) {
-				Double d = Double.parseDouble(geo_lat);
-				res += ", " + String.format("%.1f", d);
-			}
-			return res;
-		}
-
-		public String toJSON() {
-			StringBuffer sb = new StringBuffer(1024);
-			sb.append("{");
-			sb.append("\"thumbnail\":" + "\"/?cmd=thumbnail&path=" + path + "\"");
-			sb.append(",\"scaled_to_screen\":" + "\"/?cmd=thumbnail&w=800&path=" + path + "\"");
-			sb.append(",\"image\":" + "\"/?cmd=get&path=" + path + "\"");
-			sb.append(",\"path\":\"" + path + "\"");
-			if (null != orientation) {
-				sb.append(",\"orientation\":\"" + orientation + "\"");
-			}
-			sb.append(",\"w\":\"" + Integer.toString(w) + "\"");
-			sb.append(",\"h\":\"" + Integer.toString(h) + "\"");
-			if (null != category) {
-				sb.append(",\"category\":\"" + category + "\"");
-			}
-			if (null != make) {
-				sb.append(",\"make\":\"" + make + "\"");
-			}
-			if (null != model) {
-				sb.append(",\"model\":\"" + model + "\"");
-			}
-			if (null != geo_long) {
-				sb.append(",\"geo_long\":\"" + geo_long + "\"");
-			}
-			if (null != geo_lat) {
-				sb.append(",\"geo_lat\":\"" + geo_lat + "\"");
-			}
-			if (null != creationdate) {
-				sb.append(",\"creationdate\":\"" + creationdate + "\"");
-			}
-			if (null != noteId) {
-				sb.append(",\"noteId\":\"" + noteId + "\"");
-			}
-			if (null != note) {
-				sb.append(",\"note\":\"" + note + "\"");
-			}
-			if (null != phash) {
-				sb.append(",\"phash\":\"" + phash + "\"");
-			}
-			sb.append(",\"isMissing\":\"" + isMissing + "\"");
-			sb.append("}");
-			return sb.toString();
-		}
-	}
 
 	protected FotoDB() throws Exception {
 
@@ -307,7 +213,7 @@ public class FotoDB {
 		qr.update(c, sql, cd, path);
 	}
 
-	protected void updatePHashs() throws IOException, SQLException {
+	public void updatePHashs() throws IOException, SQLException {
 
 		String sql = "select path from foto where phash='" + Foto.defaultHash + "'";
 
@@ -335,11 +241,11 @@ public class FotoDB {
 		}
 	}
 
-	protected void updatePHash(String path) throws IOException, SQLException {
+	public void updatePHash(String path) throws IOException, SQLException {
 		updatePHash(this.conn, path);
 	}
 
-	protected void updatePHash(Connection c, String path) throws IOException, SQLException {
+	public void updatePHash(Connection c, String path) throws IOException, SQLException {
 
 		if (null == path) {
 			return;
@@ -416,6 +322,90 @@ public class FotoDB {
 			searchTerm = "";
 		}
 
+		if (searchTerm.length() < 1) {
+			String sql = "select " + fotoattrs + " from foto where isMissing=0 order by creationdate";
+			res = searchFotoBySQL(page, pagesize, sql);
+		} else {
+			String sql = "select " + fotoattrs + " from foto where isMissing=0 and foto match ? order by creationdate";
+			res = searchFotoBySQL(page, pagesize, sql, searchTerm);
+		}
+
+		return res;
+	}
+
+	public List<Foto> searchSimilarFoto(String path, int page, int pagesize) throws SQLException {
+
+		List<Foto> res = null;
+
+		StringBuffer sb = new StringBuffer(1024);
+		sb.append("select ");
+		sb.append(fotoattrs);
+		sb.append(" from foto where path in (");
+		sb.append(" select distinct p from (");
+		sb.append(" select p2 p, d from distance where p1 = ? and d < 15");
+		sb.append(" union all");
+		sb.append(" select p1 p, d from distance where p2 = ? and d < 15");
+		sb.append(" union all");
+		sb.append(" select path, 0 from foto where path=?");
+		sb.append(") order by d asc");
+		sb.append(")");
+
+		String sql = sb.toString();
+
+		res = searchFotoBySQL(page, pagesize, sql, path, path, path);
+
+		return res;
+	}
+
+	public List<Foto> searchCloseDate(String path, int page, int pagesize) throws SQLException {
+
+		Foto ref = getFoto(path);
+		String cd = ref.creationdate.substring(0, 10);
+
+		StringBuffer sb = new StringBuffer(1024);
+		sb.append("select ");
+		sb.append(fotoattrs);
+		sb.append(" from foto where creationdate between");
+		sb.append(" date(?,'-5 days') and date(?,'+5 days')");
+		sb.append(" and isMissing=0");
+
+		String sql = sb.toString();
+
+		List<Foto> res = searchFotoBySQL(page, pagesize, sql, cd, cd);
+		return res;
+	}
+
+	public List<Foto> searchCloseLocation(String path, int page, int pagesize) throws SQLException {
+
+		List<Foto> res = new ArrayList<Foto>();
+		
+		Foto ref = getFoto(path);
+		if( "NoLongitude".equals(ref.geo_long)) {
+			return res;
+		}
+		
+		double lng = Double.parseDouble(ref.geo_long);
+		double lat = Double.parseDouble(ref.geo_lat);
+		
+		StringBuffer sb = new StringBuffer(1024);
+		sb.append("select ");
+		sb.append(fotoattrs);
+		sb.append(" from foto where");
+		// cast(geo_long as real) between 4 and 8 and cast(geo_lat as real) between 43 and 50;
+		sb.append(" cast(geo_long as real) between ? and ?");
+		sb.append(" and cast(geo_lat as real) between ? and ?");
+		sb.append(" and isMissing=0");
+
+		String sql = sb.toString();
+
+		res = searchFotoBySQL(page, pagesize, sql, lng - 3, lng + 3, lat -3, lat + 3);
+		return res;
+	}
+
+	private List<Foto> searchFotoBySQL(int page, int pagesize, String sql, Object... args) throws SQLException {
+
+		List<Foto> res = null;
+
 		if (page < 1) {
 			page = 1;
 		}
@@ -446,16 +436,7 @@ public class FotoDB {
 		};
 
 		QueryRunner qr = new QueryRunner();
-
-		if (searchTerm.length() < 1) {
-			String sql = "select " + fotoattrs + " from foto where isMissing=0 order by creationdate";
-			// System.out.println("sql: " + sql);
-			res = qr.query(conn, sql, rsh);
-		} else {
-			String sql = "select " + fotoattrs + " from foto where isMissing=0 and foto match ? order by creationdate";
-			// System.out.println("sql: " + sql + " searchterm: " + searchTerm);
-			res = qr.query(conn, sql, rsh, searchTerm);
-		}
+		res = qr.query(conn, sql, rsh, args);
 
 		return res;
 	}

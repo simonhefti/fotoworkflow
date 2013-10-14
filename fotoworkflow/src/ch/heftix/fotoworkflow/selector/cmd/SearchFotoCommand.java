@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.util.List;
 
@@ -16,7 +16,8 @@ import org.simpleframework.http.Query;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
-import ch.heftix.fotoworkflow.selector.FotoDB.Foto;
+import ch.heftix.fotoworkflow.selector.Foto;
+import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
@@ -45,7 +46,7 @@ public class SearchFotoCommand implements WebCommand {
 			int page = q.getInteger("p");
 			int pagesize = q.getInteger("n");
 
-			List<Foto> fns = fs.db.searchFoto(searchterm, page, pagesize);
+			List<Foto> fns = fs.searchFoto(searchterm, page, pagesize);
 
 			pl.append("[");
 

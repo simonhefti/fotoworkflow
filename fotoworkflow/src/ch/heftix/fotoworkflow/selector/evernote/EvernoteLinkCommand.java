@@ -22,11 +22,11 @@ import java.util.List;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
-import ch.heftix.fotoworkflow.selector.FotoDB.Foto;
+import ch.heftix.fotoworkflow.selector.Foto;
+import ch.heftix.fotoworkflow.selector.FotoSelector;
+import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
 import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
-import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.WebCommand;
 
 import com.evernote.edam.notestore.NoteStore;
 import com.evernote.edam.type.Data;

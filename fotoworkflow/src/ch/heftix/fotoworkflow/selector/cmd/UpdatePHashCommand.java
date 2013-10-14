@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector;
+package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.io.PrintStream;
 
@@ -16,15 +16,17 @@ import org.simpleframework.http.Query;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
+import ch.heftix.fotoworkflow.selector.FotoDB;
+import ch.heftix.fotoworkflow.selector.FotoSelector;
+
 /**
- * get (or create) thumbnail from cache
- * 
+ * update a DB entry for a given foto
  */
-public class InvalidateThumbnailCommand implements WebCommand {
+public class UpdatePHashCommand implements WebCommand {
 
 	FotoSelector fs = null;
 
-	public InvalidateThumbnailCommand(FotoSelector fs) {
+	public UpdatePHashCommand(FotoSelector fs) throws Exception {
 		this.fs = fs;
 	}
 
@@ -32,24 +34,25 @@ public class InvalidateThumbnailCommand implements WebCommand {
 
 		try {
 
+			long time = System.currentTimeMillis();
+
 			Query q = request.getQuery();
-			String path = (String) q.get("path");
+			String path = q.get("path");
+			
+			FotoDB db = fs.getDB();
 
-			if (null == path) {
-				return;
-			}
+			db.updatePHash(path);
 
-			fs.db.invalidateThumbnail(path);
-
-			PrintStream ps = response.getPrintStream();
 			response.setValue("Content-Type", "text/plain");
-			response.setDate("Last-Modified", System.currentTimeMillis());
-			ps.println("done");
+			response.setDate("Last-Modified", time);
 
+			PrintStream body = response.getPrintStream();
+			body.println("done");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 	}
+
 }
