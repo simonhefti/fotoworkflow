@@ -28,6 +28,7 @@ public class Foto implements Payload {
 	public String creationdate;
 	public String phash;
 	public int isMissing = 0;
+	public double tmpKmFrom = 0;
 
 	public static final String defaultHash = "1111111111111111";
 
@@ -58,6 +59,9 @@ public class Foto implements Payload {
 		sb.append("{");
 		sb.append("\"thumbnail\":" + "\"/?cmd=thumbnail&path=" + path + "\"");
 		sb.append(",\"scaled_to_screen\":" + "\"/?cmd=thumbnail&w=800&path=" + path + "\"");
+		sb.append(",\"w400\":" + "\"/?cmd=thumbnail&w=400&path=" + path + "\"");
+		sb.append(",\"w600\":" + "\"/?cmd=thumbnail&w=600&path=" + path + "\"");
+		sb.append(",\"name\":" + "\"" + getName() + "\"");
 		sb.append(",\"image\":" + "\"/?cmd=get&path=" + path + "\"");
 		sb.append(",\"path\":\"" + path + "\"");
 		if (null != orientation) {
@@ -95,5 +99,16 @@ public class Foto implements Payload {
 		sb.append(",\"isMissing\":\"" + isMissing + "\"");
 		sb.append("}");
 		return sb.toString();
+	}
+
+	public String getName() {
+		String res = "NoName";
+		if (null != path) {
+			int p = path.lastIndexOf("/");
+			if (p > 0 && p + 1 < path.length()) {
+				res = path.substring(p + 1);
+			}
+		}
+		return res;
 	}
 }

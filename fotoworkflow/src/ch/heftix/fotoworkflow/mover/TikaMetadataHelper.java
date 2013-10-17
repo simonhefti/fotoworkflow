@@ -35,6 +35,23 @@ public class TikaMetadataHelper {
 	private DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 	private MetadataFormatPattern[] mfps = null;
 	private Pattern reFileExtension = Pattern.compile("[.]([^.]+)$");
+	Pattern repetitionFinder = Pattern.compile(".+(.{2,})_\\1+.*");
+	
+	public String fixFilenameRepetition(String fn) {
+
+		String res = fn;
+		Matcher matcher = repetitionFinder.matcher(fn);
+		String repeated = matcher.matches() ? matcher.group(1) : null;
+		while (null != repeated) {
+			// System.out.println("repeated '" + repeated + "'");
+			res = fn.replaceFirst(repeated + "_", "");
+			matcher = repetitionFinder.matcher(res);
+			repeated = matcher.matches() ? matcher.group(1) : null;
+		}
+		return res;
+	}
+	
+	
 
 	/** get GPS Altitude field */
 	public double getAltitude(Metadata md) {
@@ -279,13 +296,25 @@ public class TikaMetadataHelper {
 		return format(f, metadata, p);
 	}
 
-	/** format according to pattern */
+	/**
+	 * format according to pattern
+	 * 
+	 * @param f
+	 *            source file
+	 * @param metadata
+	 *            metadata of f
+	 * @param ps
+	 *            parsed array of patterns
+	 * @return formatted file name, or null if SkipExisting is true and
+	 *         destination exists
+	 */
 	public String format(File f, Metadata metadata, MetadataFormatPattern[] ps) throws IOException {
 
 		String res = "";
 		StringBuffer sb = new StringBuffer(1024);
 
 		boolean checkUnique = false;
+		boolean skipExisting = false;
 
 		for (MetadataFormatPattern p : ps) {
 			if (null == p.tagName || p.tagName.length() < 1) {
@@ -309,6 +338,8 @@ public class TikaMetadataHelper {
 					v = "NoOrientation";
 				}
 				sb.append(v);
+			} else if ("SkipExisting".equals(p.tagName)) {
+				skipExisting = true;
 			} else if ("Unique".equals(p.tagName)) {
 				sb.append("_Unique_");
 				checkUnique = true;
@@ -369,6 +400,13 @@ public class TikaMetadataHelper {
 
 		res = sb.toString();
 
+		if (skipExisting) {
+			File t1 = new File(res);
+			if (t1.exists()) {
+				return null; // signal skip
+			}
+		}
+
 		if (checkUnique) {
 
 			int cnt = 10;
@@ -386,6 +424,9 @@ public class TikaMetadataHelper {
 				res = r1;
 			}
 		}
+		
+		res = fixFilenameRepetition(res);
+
 
 		return res;
 	}

@@ -29,6 +29,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,6 +43,7 @@ import org.apache.commons.dbutils.ResultSetHandler;
 import org.apache.tika.metadata.Metadata;
 import org.sqlite.SQLiteJDBCLoader;
 
+import ch.heftix.fotoworkflow.mover.GeoPoint;
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
 
 public class FotoDB {
@@ -193,6 +196,72 @@ public class FotoDB {
 		} else {
 			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation, phash, isMissing) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o, phash, isMissing);
+		}
+
+	}
+
+	public void updateFoto(File f, String note) throws IOException, SQLException {
+		updateFoto(conn, f, note);
+	}
+
+	/**
+	 * update data in foto index from file
+	 * @param c DB connection
+	 * @param f file to take data from
+	 * @param note import note
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	public void updateFoto(Connection c, File f, String note) throws IOException, SQLException {
+
+		if (null == f) {
+			return;
+		}
+
+		if (!f.exists()) {
+			return;
+		}
+
+		// check existence
+		boolean cnt = existsFoto(f.getAbsolutePath());
+		if (! cnt) {
+			return;
+		}
+
+		String ext = mdh.getExtension(f);
+		Matcher m = reExtensionFilter.matcher(ext);
+		if (!m.matches()) {
+			return;
+		}
+
+		Metadata md = mdh.readMetadata(f);
+
+		String mt = mdh.format(f, md, "@{Mimetype}");
+		String model = mdh.format(f, md, "@{Model}");
+		String make = mdh.format(f, md, "@{Make}");
+		String cd = mdh.format(f, md, "@{CreationDate: yyyy-MM-dd'T'HHmm}");
+		String lng = mdh.format(f, md, "@{Longitude}");
+		String lat = mdh.format(f, md, "@{Latitude}");
+		String o = mdh.format(f, md, "@{Orientation}");
+		int w = mdh.getWidth(md);
+		int h = mdh.getHeight(md);
+		String phash = Foto.defaultHash;
+
+		QueryRunner qr = new QueryRunner();
+		
+		StringBuffer sb = new StringBuffer(1024);
+		sb.append("update foto set mimetype=?,creationdate=?,w=?,h=?,make=?,model=?");
+		sb.append(",geo_long=?,geo_lat=?,orientation=?,phash=?,isMissing=0");
+		if (null != note && note.length() > 1) {
+			sb.append(",note=?");
+		}
+		sb.append(" where path=?");
+		String sql = sb.toString();
+
+		if (null != note && note.length() > 1) {
+			qr.update(c, sql, mt, cd, w, h, make, model, lng, lat, o, phash, note, f.getAbsolutePath());
+		} else {
+			qr.update(c, sql, mt, cd, w, h, make, model, lng, lat, o, phash, f.getAbsolutePath());
 		}
 
 	}
@@ -368,6 +437,7 @@ public class FotoDB {
 		sb.append(" from foto where creationdate between");
 		sb.append(" date(?,'-5 days') and date(?,'+5 days')");
 		sb.append(" and isMissing=0");
+		sb.append(" order by creationdate");
 
 		String sql = sb.toString();
 
@@ -378,28 +448,71 @@ public class FotoDB {
 	public List<Foto> searchCloseLocation(String path, int page, int pagesize) throws SQLException {
 
 		List<Foto> res = new ArrayList<Foto>();
-		
+
 		Foto ref = getFoto(path);
-		if( "NoLongitude".equals(ref.geo_long)) {
+		if ("NoLongitude".equals(ref.geo_long)) {
 			return res;
 		}
-		
+
 		double lng = Double.parseDouble(ref.geo_long);
 		double lat = Double.parseDouble(ref.geo_lat);
-		
+
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("select ");
 		sb.append(fotoattrs);
 		sb.append(" from foto where");
-		// cast(geo_long as real) between 4 and 8 and cast(geo_lat as real) between 43 and 50;
+		// cast(geo_long as real) between 4 and 8 and cast(geo_lat as real)
+		// between 43 and 50;
 		sb.append(" cast(geo_long as real) between ? and ?");
 		sb.append(" and cast(geo_lat as real) between ? and ?");
 		sb.append(" and isMissing=0");
 
 		String sql = sb.toString();
 
-		res = searchFotoBySQL(page, pagesize, sql, lng - 3, lng + 3, lat -3, lat + 3);
-		return res;
+		res = searchFotoBySQL(sql, lng - 5, lng + 5, lat - 5, lat + 5);
+
+		GeoPoint gp = new GeoPoint();
+		gp.setLng(lng);
+		gp.setLat(lat);
+
+		// calculate distances
+		for (Foto f : res) {
+			GeoPoint g2 = new GeoPoint();
+			g2.setLng(f.geo_long);
+			g2.setLat(f.geo_lat);
+			f.tmpKmFrom = g2.kmFrom(gp);
+		}
+
+		Collections.sort(res, new Comparator<Foto>() {
+			public int compare(Foto f1, Foto f2) {
+				if (f2.tmpKmFrom < f1.tmpKmFrom) {
+					return 1;
+				} else if (f2.tmpKmFrom > f1.tmpKmFrom) {
+					return -1;
+				}
+				return 0;
+			}
+		});
+
+		if (page < 1) {
+			page = 1;
+		}
+
+		if (pagesize < 1) {
+			pagesize = 6;
+		}
+
+		List<Foto> r2 = new ArrayList<Foto>();
+		int start = (page - 1) * pagesize;
+		for (int i = start; i < start + pagesize && i < res.size(); i++) {
+			r2.add(res.get(i));
+		}
+//		System.out.println(String.format("compared to: %s", ref.path));
+//		for (Foto f : r2) {
+//			System.out.println(String.format("%.3f %s", f.tmpKmFrom, f.path));
+//		}
+
+		return r2;
 	}
 
 	private List<Foto> searchFotoBySQL(int page, int pagesize, String sql, Object... args) throws SQLException {
@@ -430,6 +543,27 @@ public class FotoDB {
 					Foto f = rs2Foto(rs);
 					res.add(f);
 					cnt++;
+				}
+				return res;
+			}
+		};
+
+		QueryRunner qr = new QueryRunner();
+		res = qr.query(conn, sql, rsh, args);
+
+		return res;
+	}
+
+	private List<Foto> searchFotoBySQL(String sql, Object... args) throws SQLException {
+
+		List<Foto> res = null;
+
+		ResultSetHandler<List<Foto>> rsh = new ResultSetHandler<List<Foto>>() {
+			public List<Foto> handle(ResultSet rs) throws SQLException {
+				List<Foto> res = new ArrayList<Foto>();
+				while (rs.next()) {
+					Foto f = rs2Foto(rs);
+					res.add(f);
 				}
 				return res;
 			}

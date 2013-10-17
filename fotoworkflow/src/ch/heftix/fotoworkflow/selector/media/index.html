@@ -6,17 +6,21 @@
 <link href="css/bootstrap.min.css" rel="stylesheet">
 <link href="css/bootstrap-glyphicons.css" rel="stylesheet">
 
-<script src="js/zepto.min.js"></script>
+<!-- <script src="http://code.jquery.com/jquery.js"></script> -->
+<script src="js/jquery.js"></script>
+<!-- script src="js/zepto.min.js"></script> 
 <script src="js/data.js"></script>
 <script src="js/selector.js"></script>
-<script>
-window.jQuery = Zepto;
-</script>
+<script> window.jQuery = Zepto; </script> -->
 <script src="js/jsOAuth.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/jwerty.js"></script>
 
 <style type="text/css">
+.popover {
+	width: 650px;
+	max-width: 800px;
+}
 .h300
 {
     height: 360px;
@@ -44,6 +48,7 @@ window.jQuery = Zepto;
 }
 .alert {
 	padding: 5px 35px 5px 5px;
+	margin-bottom: 0px;
 }
 
 </style>
@@ -58,7 +63,6 @@ window.jQuery = Zepto;
 	<a id="Prev" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
 	<a id="Next" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-right"></span></a>
 	<a id='doc-all' class='btn btn-primary btn-small' href="#"><span class="glyphicon glyphicon-thumbs-down"></span></a>
-
 	<div class="btn-group">
 		<a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
 			<span class="glyphicon glyphicon-wrench"></span>
@@ -67,12 +71,12 @@ window.jQuery = Zepto;
   		<ul class="dropdown-menu">
     		<li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
 	    	<li><a id="menuImport" href="#"> Import Photos</a></li>
-	    	<li><a id="ping" href="#"> Ping</a></li>
-	    	<li><a id="grid2_4" href="#"> 2 &times; 4</a></li>
+	    	<li><a id="grid2_4" href="#"> 4 &times; 2</a></li>
 	    	<li><a id="grid1_1" href="#"> 1 &times; 1</a></li>
+	    	<li><a id="ping" href="#"> Ping</a></li>
 		</ul>
 	</div>
-	<div id="msgbox"></div>
+	<div id="msgbox" style="float: right"></div>
 </div>
 
 <div id="output" ></div>
@@ -117,7 +121,7 @@ window.jQuery = Zepto;
 </div><!-- /.modal -->
 
 
-<div id="myModal" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true" width="600px">
+<!-- <div id="myModal" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true" width="600px">
 	<div class='lightbox-header'>
 		<button type="button" class="close" data-dismiss="lightbox" aria-hidden="true">&times;</button>
 	</div>
@@ -125,13 +129,13 @@ window.jQuery = Zepto;
 	  <img id="overlay_img" />
 	</div>
 </div>
-
+ -->
 
 
 <script>
 
 var page = 1;
-var img_on_page = 0;
+// var img_on_page = 0;
 var cols = 4;
 var rows = 2;
 
@@ -164,6 +168,7 @@ var _showNote = function() {
 				style = 'alert-error';
 			}
 			$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+n.text+'</span></div>');
+			//$('#msgbox').text(n.text);
 			_lastNote = now;
 			if( _notes.length > 0) {
 				// console.log("_showNote: have more notes, setting new timeout");
@@ -258,8 +263,11 @@ var _evernote_link = function(item) {
 }
 
 function showFoto(data) {
+
 	var twitterList = $( "<div class='row'/>" );
+
 	$( "#output" ).empty();
+
 	if( "ok" != data.code) {
 		_note(data.code, data.msg);
 	}
@@ -276,24 +284,44 @@ function showFoto(data) {
 		}
 		tr.append(td);
 
-		var img = $("<img src='" + item.thumbnail + "' title='" + item.path + "'>");
+		//var img = $("<img src='" + item.thumbnail + "' title='" + item.path + "'>");
+		var img = $("<img src='" + item.thumbnail + "'>");
 		if( 1 == cols ) {
-			img = $("<img src='" + item.scaled_to_screen + + "' title='" + item.path + "'>");
+			//img = $("<img src='" + item.scaled_to_screen + + "' title='" + item.path + "'>");
+			img = $("<img src='" + item.scaled_to_screen + "'>");
 		}
 		td.append(img);
 
+		var det_div = $( "<div />" );
+		det_div.append("Date: ");
+		det_div.append(item.creationdate);
+		det_div.append("&nbsp;Make: ");
+		det_div.append(item.make);
+		det_div.append("&nbsp;Model: ");
+		det_div.append(item.model);
+		det_div.append("<br />");
+		det_div.append("Long: ");
+		det_div.append(item.geo_long);
+		det_div.append("&nbsp;Lat: ");
+		det_div.append(item.geo_lat);
+		det_div.append("Note: ");
+		det_div.append(item.note);
+		det_div.append("&nbsp;EN: ");
+		det_div.append(item.noteId);
+		det_div.append("<br />");
+
+		var d_i = $("<img src='" + item.w600 + "'>");
+		det_div.append(d_i);
+
 		var po_opt = {};
-		po_opt.title = "Test";
-		po_opt.trigger = "hover";
-		//po_opt.placement = "auto";
-		//po_opt.container = "div";
-		po_opt.content = item.phash;
+		po_opt.html = true;
+		po_opt.placement = "auto left";
+		po_opt.title = item.name;
+		po_opt.trigger = "click";
+		var po_d = {};
+		po_opt.content = det_div.html();
 
 		img.popover(po_opt);
-
-
-
-		// console.log("foto:", item.thumbnail);
 
 		var ip = $("<input class='form-control w60' />", { type:"text" })
 		if (typeof(item.note) != "undefined" && item.note.length > 0) {
@@ -505,9 +533,11 @@ $('#importStart').on('click', function(e) {
 });
 
 function setRowsCols(r, c) {
+	var first_pic = rows * cols * (page - 1);
+	// console.log("rows: %d, cols: %d page: %d first_pic: %d", rows, cols, page, first_pic);
 	rows = r;
 	cols = c;
-	console.log("rows: %d, cols: %d", rows, cols);
+	page = parseInt(first_pic / rows / cols) + 1;
 	searchFoto();
 }
 
@@ -532,15 +562,15 @@ jwerty.key('shift+→', function () {
 	searchFoto();
 }, this, "body");
 
-jwerty.key('shift+ctrl+→', function () {
-	img_on_page++;
-	if( img_on_page > 5) {
-		img_on_page = 0;
-	}
-	var li = $('#output ul').children().get(img_on_page);
-	var f = $(li).data('path');
-	$("#overlay_img").attr('src',"?cmd=get&path=" + f);
-}, this, "#myModal");
+// jwerty.key('shift+ctrl+→', function () {
+// 	img_on_page++;
+// 	if( img_on_page > 5) {
+// 		img_on_page = 0;
+// 	}
+// 	var li = $('#output ul').children().get(img_on_page);
+// 	var f = $(li).data('path');
+// 	$("#overlay_img").attr('src',"?cmd=get&path=" + f);
+// }, this, "#myModal");
 
 jwerty.key('shift+←', function () { 
 	page--;
@@ -550,14 +580,23 @@ jwerty.key('shift+←', function () {
 var tst = {"code":"info","msg":"Welcome to Foto Workflow. Nice to see you."};
 _note(tst.code, tst.msg);
 
-Zepto(function($){ // - page ready
+// Zepto(function($){ // - page ready
+// 	page = 1;
+// 	search_cmd = "list";
+// 	search_k = "st";
+// 	search_v = $('#query').val();
+// 	searchFoto();
+// 	_readImportPattern();
+// });
+
+$( document ).ready( function() {
 	page = 1;
 	search_cmd = "list";
 	search_k = "st";
 	search_v = $('#query').val();
 	searchFoto();
-	_readImportPattern();
-});
+	_readImportPattern();	
+} );
 </script>
 
 </body>

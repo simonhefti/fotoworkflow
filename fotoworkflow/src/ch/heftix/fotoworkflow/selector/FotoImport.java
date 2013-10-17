@@ -30,7 +30,6 @@ public class FotoImport {
 	boolean dryRun = false;
 	FotoSelector fs = null;
 	FotoDB db = null;
-	Pattern repetitionFinder = Pattern.compile("(.+?)_\\1+.*");
 	String note = null;
 
 	public FotoImport(FotoSelector fs, String pattern, String note) {
@@ -42,19 +41,6 @@ public class FotoImport {
 
 	public void setDryRun() {
 		dryRun = true;
-	}
-
-	public String fixFilenameRepetition(String fn) {
-
-		String res = fn;
-		Matcher matcher = repetitionFinder.matcher(fn);
-		String repeated = matcher.matches() ? matcher.group(1) : null;
-		while (null != repeated) {
-			res = fn.replaceFirst(repeated + "_", "");
-			matcher = repetitionFinder.matcher(res);
-			repeated = matcher.matches() ? matcher.group(1) : null;
-		}
-		return res;
 	}
 
 	public void handleFile(File file) throws Exception {
@@ -96,28 +82,33 @@ public class FotoImport {
 		System.out.println(file.getAbsolutePath());
 
 		String newName = mdh.format(file);
-		newName = fixFilenameRepetition(newName);
+		if (null == newName) {
+			note("  skipping %s", file.getAbsolutePath());
+			return;
+		}
 
 		if (dryRun) {
 			note("would move %s to %s", file.getAbsolutePath(), newName);
 		} else {
 
-			if (db.existsFoto(newName)) {
-				note("skip (%s already stored)", newName);
-			} else {
-				File nf = new File(newName);
-				nf.mkdirs();
+			File nf = new File(newName);
+			nf.mkdirs();
 
-				Path source = Paths.get(file.getAbsolutePath());
-				Path target = Paths.get(newName);
-				try {
-					Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-					note("  --> %s", newName);
+			Path source = Paths.get(file.getAbsolutePath());
+			Path target = Paths.get(newName);
+
+			try {
+				Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+				note("  --> %s", newName);
+				if (db.existsFoto(newName)) {
+					note("  already stored, updating %s", newName);
+					db.updateFoto(nf, note);
+				} else {
 					db.insertFoto(nf, note);
-					fs.queue.add("imported " + nf.getName());
-				} catch (IOException e) {
-					e.printStackTrace();
 				}
+				fs.queue.add("imported " + nf.getName());
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}

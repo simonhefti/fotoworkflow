@@ -89,6 +89,16 @@ public class GeoPoint {
 		lng_rad = Math.toRadians(lng_deg);
 	}
 
+	public void setLng(final String val) {
+		double d = Double.parseDouble(val);
+		setLng(d);
+	}
+
+	public void setLat(final String val) {
+		double d = Double.parseDouble(val);
+		setLat(d);
+	}
+
 	double todec(String glat) {
 
 		glat = glat.replace("deg", " ");
