@@ -13,70 +13,36 @@ package ch.heftix.fotoworkflow.selector.cmd;
 import java.util.List;
 
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.Foto;
 import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
  * search foto based on distance
  */
-public class SearchSimilarFotoCommand implements WebCommand {
+public class SearchSimilarFotoCommand extends BaseWebCommand {
 
-	FotoSelector fs = null;
-
-	public SearchSimilarFotoCommand(FotoSelector fs) throws Exception {
-		this.fs = fs;
+	public SearchSimilarFotoCommand(FotoSelector fs) {
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
+		StringBufferPayload pl = new StringBufferPayload();
 
-			JsonResponse jr = new JsonResponse();
+		String path = q.get("path");
+		int page = q.getInteger("p");
+		int pagesize = q.getInteger("n");
 
-			StringBufferPayload pl = new StringBufferPayload();
+		FotoDB db = fs.getDB();
 
-			Query q = request.getQuery();
-			String path = q.get("path");
-			int page = q.getInteger("p");
-			int pagesize = q.getInteger("n");
-			
-			FotoDB db = fs.getDB();
+		List<Foto> fns = db.searchSimilarFoto(path, page, pagesize);
+		BaseWebCommand.list(fns, pl);
 
-			List<Foto> fns = db.searchSimilarFoto(path, page, pagesize);
-
-			pl.append("[");
-
-			boolean first = true;
-
-			for (Foto fn : fns) {
-				String line = fn.toJSON();
-				if (first) {
-					first = false;
-				} else {
-					line = ", " + line;
-				}
-				pl.append(line);
-			}
-
-			pl.append("]");
-
-			jr.code = "ok";
-			jr.payload = pl;
-
-			JsonHelper.send(jr, response);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		jr.code = "ok";
+		jr.payload = pl;
 	}
-
 }

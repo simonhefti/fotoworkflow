@@ -22,6 +22,11 @@ create virtual table foto using fts4 (
   noteid text, -- evernote note ID,e.g. aaaaaaa-aaaa-aaaa-aaaa-aaaaaaa
   mimetype text, -- mime type of this file, e.g. image/jpeg
   creationdate text, -- format yyyy-MM-dd'T'HHmm
+  year int,
+  month int,
+  day int,
+  hour int,
+  minute int,
   w int, -- width
   h int, -- height
   make text, -- camera make, e.g. Nikon

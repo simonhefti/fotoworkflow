@@ -13,67 +13,33 @@ package ch.heftix.fotoworkflow.selector.cmd;
 import java.util.List;
 
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.Foto;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
  * search foto within foto index
  */
-public class SearchFotoCommand implements WebCommand {
+public class SearchFotoCommand extends BaseWebCommand {
 
-	FotoSelector fs = null;
-
-	public SearchFotoCommand(FotoSelector fs) throws Exception {
-		this.fs = fs;
+	public SearchFotoCommand(FotoSelector fs) {
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
+		String searchterm = q.get("st");
+		int page = q.getInteger("p");
+		int pagesize = q.getInteger("n");
 
-			JsonResponse jr = new JsonResponse();
+		List<Foto> fns = fs.searchFoto(searchterm, page, pagesize);
 
-			StringBufferPayload pl = new StringBufferPayload();
+		StringBufferPayload pl = new StringBufferPayload();
+		BaseWebCommand.list(fns, pl);
 
-			Query q = request.getQuery();
-			String searchterm = q.get("st");
-			int page = q.getInteger("p");
-			int pagesize = q.getInteger("n");
-
-			List<Foto> fns = fs.searchFoto(searchterm, page, pagesize);
-
-			pl.append("[");
-
-			boolean first = true;
-
-			for (Foto fn : fns) {
-				String line = fn.toJSON();
-				if (first) {
-					first = false;
-				} else {
-					line = ", " + line;
-				}
-				pl.append(line);
-			}
-
-			pl.append("]");
-
-			jr.code = "ok";
-			jr.payload = pl;
-
-			JsonHelper.send(jr, response);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		jr.payload = pl;
+		jr.code = "ok";
 	}
-
 }

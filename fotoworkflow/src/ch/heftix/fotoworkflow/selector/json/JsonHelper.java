@@ -14,7 +14,6 @@ import java.io.PrintStream;
 
 import org.simpleframework.http.Response;
 
-
 public class JsonHelper {
 
 	public static void send(JsonResponse jr, Response r) throws Exception {
@@ -27,4 +26,5 @@ public class JsonHelper {
 
 		body.print(jr.toJSON());
 	}
+
 }

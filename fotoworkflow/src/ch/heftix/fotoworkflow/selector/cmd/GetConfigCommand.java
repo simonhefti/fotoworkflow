@@ -14,47 +14,33 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
  * update a DB entry for a given foto
  */
-public class GetConfigCommand implements WebCommand {
-
-	FotoSelector fs = null;
+public class GetConfigCommand extends BaseWebCommand {
 
 	public GetConfigCommand(FotoSelector fs) throws Exception {
-		this.fs = fs;
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
-			JsonResponse jr = new JsonResponse();
-
-			StringBufferPayload pl = new StringBufferPayload();
-			Query q = request.getQuery();
-			String k = q.get("k");
-			List<String> allowedKeys = Arrays.asList("importPattern");
-			if (allowedKeys.contains(k)) {
-				String t = String.format("{\"%s\": \"%s\"}", k, fs.getConf(k));
-				pl.append(t);
-				jr.code = "ok";
-			} else {
-				jr.code = "error";
-				jr.msg = "key may not be queried";
-			}
-			jr.payload = pl;
-			JsonHelper.send(jr, response);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		StringBufferPayload pl = new StringBufferPayload();
+		String k = q.get("k");
+		List<String> allowedKeys = Arrays.asList("importPattern");
+		if (allowedKeys.contains(k)) {
+			String t = String.format("{\"%s\": \"%s\"}", k, fs.getConf(k));
+			pl.append(t);
+			jr.code = "ok";
+		} else {
+			jr.code = "error";
+			jr.msg = "key may not be queried";
 		}
+		jr.payload = pl;
 	}
 }

@@ -10,48 +10,33 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
-import java.io.PrintStream;
-
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
+import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 
 /**
- * get (or create) thumbnail from cache
+ * invalidate cached thumbnail
  * 
  */
-public class InvalidateThumbnailCommand implements WebCommand {
-
-	FotoSelector fs = null;
+public class InvalidateThumbnailCommand extends BaseWebCommand {
 
 	public InvalidateThumbnailCommand(FotoSelector fs) {
-		this.fs = fs;
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
+		String path = (String) q.get("path");
 
-			Query q = request.getQuery();
-			String path = (String) q.get("path");
-
-			if (null == path) {
-				return;
-			}
-
-			fs.invalidateThumbnail(path);
-
-			PrintStream ps = response.getPrintStream();
-			response.setValue("Content-Type", "text/plain");
-			response.setDate("Last-Modified", System.currentTimeMillis());
-			ps.println("done");
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (null == path) {
+			return;
 		}
+
+		fs.invalidateThumbnail(path);
+
+		jr.code = "ok";
+		jr.msg = "done";
 
 	}
 }

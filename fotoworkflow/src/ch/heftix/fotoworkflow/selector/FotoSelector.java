@@ -29,6 +29,7 @@ import org.simpleframework.transport.Server;
 import org.simpleframework.transport.connect.Connection;
 import org.simpleframework.transport.connect.SocketConnection;
 
+import ch.heftix.fotoworkflow.selector.cmd.ExcludeDocumentaryCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCLCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetConfigCommand;
@@ -55,7 +56,7 @@ public class FotoSelector implements Container {
 	private Map<String, WebCommand> commands = new HashMap<String, WebCommand>();
 	private FotoDB db = null;
 	public EvernoteUtil oAuthState = new EvernoteUtil();
-	public Queue<String> queue = new ConcurrentLinkedQueue<>();
+	public Queue<String> queue = new ConcurrentLinkedQueue<String>();
 
 	public FotoSelector() throws Exception {
 		db = new FotoDB();
@@ -97,6 +98,8 @@ public class FotoSelector implements Container {
 
 		fs.register("update-phash", new UpdatePHashCommand(fs));
 		fs.register("update-phashs", new UpdatePHashsCommand(fs));
+
+		fs.register("exclude-documentary", new ExcludeDocumentaryCommand(fs));
 
 		connection.connect(address);
 
@@ -184,15 +187,14 @@ public class FotoSelector implements Container {
 		}
 	}
 
-	public List<Foto> searchFoto(String searchTerm, int page, int pagesize) {
+	public List<Foto> searchFoto(String searchTerm, int page, int pagesize) throws SQLException {
 		List<Foto> res = null;
-		try {
-			res = db.searchFoto(searchTerm, page, pagesize);
-		} catch (Exception e) {
-			// TODO
-			e.printStackTrace();
-		}
+		res = db.searchFoto(searchTerm, page, pagesize);
 		return res;
+	}
+	
+	public void toggleExcludeDocumentary() {
+		db.toggleExcludeDocumentary();
 	}
 
 }

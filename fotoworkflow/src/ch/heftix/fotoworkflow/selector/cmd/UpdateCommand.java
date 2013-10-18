@@ -10,47 +10,30 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
-import java.io.PrintStream;
-
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
+import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 
 /**
  * update a DB entry for a given foto
  */
-public class UpdateCommand implements WebCommand {
+public class UpdateCommand extends BaseWebCommand {
 
-	FotoSelector fs = null;
-
-	public UpdateCommand(FotoSelector fs) throws Exception {
-		this.fs = fs;
+	public UpdateCommand(FotoSelector fs) {
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
-
-			long time = System.currentTimeMillis();
-
-			Query q = request.getQuery();
 			String path = q.get("path");
 			String k = q.get("k");
 			String v = q.get("v");
 
 			fs.storeInfo(path, k, v);
-
-			response.setValue("Content-Type", "text/plain");
-			response.setDate("Last-Modified", time);
-
-			PrintStream body = response.getPrintStream();
-			body.println("done");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			
+			jr.code = "ok";
+			jr.msg = String.format("updated '%s' for %s", v, path);
 
 	}
 

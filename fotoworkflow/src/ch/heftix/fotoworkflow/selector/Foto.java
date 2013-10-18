@@ -100,7 +100,7 @@ public class Foto implements Payload {
 		sb.append("}");
 		return sb.toString();
 	}
-
+	
 	public String getName() {
 		String res = "NoName";
 		if (null != path) {

@@ -66,6 +66,8 @@ public class FotoDB {
 	String pModel = "@{Model}";
 
 	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing";
+	
+	private boolean excludeDocumentary = false;
 
 	protected FotoDB() throws Exception {
 
@@ -180,6 +182,11 @@ public class FotoDB {
 		String model = mdh.format(f, md, "@{Model}");
 		String make = mdh.format(f, md, "@{Make}");
 		String cd = mdh.format(f, md, "@{CreationDate: yyyy-MM-dd'T'HHmm}");
+		int year = Integer.parseInt(mdh.format(f, md, "@{CreationDate: yyyy}"));
+		int month = Integer.parseInt(mdh.format(f, md, "@{CreationDate: MM}"));
+		int day = Integer.parseInt(mdh.format(f, md, "@{CreationDate: dd}"));
+		int hour = Integer.parseInt(mdh.format(f, md, "@{CreationDate: HH}"));
+		int minute = Integer.parseInt(mdh.format(f, md, "@{CreationDate: mm}"));
 		String lng = mdh.format(f, md, "@{Longitude}");
 		String lat = mdh.format(f, md, "@{Latitude}");
 		String o = mdh.format(f, md, "@{Orientation}");
@@ -188,14 +195,25 @@ public class FotoDB {
 		String phash = Foto.defaultHash;
 		int isMissing = 0;
 
+		StringBuffer sb = new StringBuffer(1024);
+		sb.append("insert into foto (path,mimetype,creationdate");
+		sb.append(",year,month,day,hour,min");
+		sb.append("w,h,make,model,geo_long,geo_lat,orientation");
+		if (null != note && note.length() > 1) {
+			sb.append(",note=?");
+		}
+		sb.append(", phash, isMissing)");
+		sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+		String sql = sb.toString();
+
 		QueryRunner qr = new QueryRunner();
 
 		if (null != note && note.length() > 1) {
-			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation, note, phash, isMissing) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
-			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o, note, phash, isMissing);
+			qr.update(c, sql, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model, lng, lat,
+					o, note, phash, isMissing);
 		} else {
-			String sql = "insert into foto (path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation, phash, isMissing) values (?,?,?,?,?,?,?,?,?,?,?,?)";
-			qr.update(c, sql, f.getAbsolutePath(), mt, cd, w, h, make, model, lng, lat, o, phash, isMissing);
+			qr.update(c, sql, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model, lng, lat,
+					o, phash, isMissing);
 		}
 
 	}
@@ -206,9 +224,13 @@ public class FotoDB {
 
 	/**
 	 * update data in foto index from file
-	 * @param c DB connection
-	 * @param f file to take data from
-	 * @param note import note
+	 * 
+	 * @param c
+	 *            DB connection
+	 * @param f
+	 *            file to take data from
+	 * @param note
+	 *            import note
 	 * @throws IOException
 	 * @throws SQLException
 	 */
@@ -224,7 +246,7 @@ public class FotoDB {
 
 		// check existence
 		boolean cnt = existsFoto(f.getAbsolutePath());
-		if (! cnt) {
+		if (!cnt) {
 			return;
 		}
 
@@ -246,12 +268,18 @@ public class FotoDB {
 		int w = mdh.getWidth(md);
 		int h = mdh.getHeight(md);
 		String phash = Foto.defaultHash;
+		int year = Integer.parseInt(mdh.format(f, md, "@{CreationDate: yyyy}"));
+		int month = Integer.parseInt(mdh.format(f, md, "@{CreationDate: MM}"));
+		int day = Integer.parseInt(mdh.format(f, md, "@{CreationDate: dd}"));
+		int hour = Integer.parseInt(mdh.format(f, md, "@{CreationDate: HH}"));
+		int minute = Integer.parseInt(mdh.format(f, md, "@{CreationDate: mm}"));
 
 		QueryRunner qr = new QueryRunner();
-		
+
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("update foto set mimetype=?,creationdate=?,w=?,h=?,make=?,model=?");
 		sb.append(",geo_long=?,geo_lat=?,orientation=?,phash=?,isMissing=0");
+		sb.append(",year=?,month=?,day=?,hour=?,minute=?");
 		if (null != note && note.length() > 1) {
 			sb.append(",note=?");
 		}
@@ -259,9 +287,11 @@ public class FotoDB {
 		String sql = sb.toString();
 
 		if (null != note && note.length() > 1) {
-			qr.update(c, sql, mt, cd, w, h, make, model, lng, lat, o, phash, note, f.getAbsolutePath());
+			qr.update(c, sql, mt, cd, w, h, make, model, lng, lat, o, phash, year, month, day, hour, minute, note,
+					f.getAbsolutePath());
 		} else {
-			qr.update(c, sql, mt, cd, w, h, make, model, lng, lat, o, phash, f.getAbsolutePath());
+			qr.update(c, sql, mt, cd, w, h, make, model, lng, lat, o, phash, year, month, day, hour, minute,
+					f.getAbsolutePath());
 		}
 
 	}
@@ -288,7 +318,7 @@ public class FotoDB {
 
 		ResultSetHandler<List<String>> rsh = new ResultSetHandler<List<String>>() {
 			public List<String> handle(ResultSet rs) throws SQLException {
-				List<String> res = new ArrayList<>();
+				List<String> res = new ArrayList<String>();
 				while (rs.next()) {
 					res.add(rs.getString(1));
 				}
@@ -390,12 +420,23 @@ public class FotoDB {
 		if (null == searchTerm) {
 			searchTerm = "";
 		}
+		
+		StringBuffer sb = new StringBuffer(1024);
+		sb.append("select ");
+		sb.append(fotoattrs);
+		sb.append(" from foto where isMissing=0");
+		if( excludeDocumentary ) {
+			sb.append(" and (category is NULL OR category <> 'documentary')");
+		}
+		if (searchTerm.length() > 0) {
+			sb.append(" and foto match ?");
+		}
+		sb.append(" order by creationdate");
+		String sql = sb.toString();
 
 		if (searchTerm.length() < 1) {
-			String sql = "select " + fotoattrs + " from foto where isMissing=0 order by creationdate";
 			res = searchFotoBySQL(page, pagesize, sql);
 		} else {
-			String sql = "select " + fotoattrs + " from foto where isMissing=0 and foto match ? order by creationdate";
 			res = searchFotoBySQL(page, pagesize, sql, searchTerm);
 		}
 
@@ -412,7 +453,13 @@ public class FotoDB {
 		sb.append(" from foto where path in (");
 		sb.append(" select distinct p from (");
 		sb.append(" select p2 p, d from distance where p1 = ? and d < 15");
+		if( excludeDocumentary ) {
+			sb.append(" and (category is NULL OR category <> 'documentary')");
+		}
 		sb.append(" union all");
+		if( excludeDocumentary ) {
+			sb.append(" and (category is NULL OR category <> 'documentary')");
+		}
 		sb.append(" select p1 p, d from distance where p2 = ? and d < 15");
 		sb.append(" union all");
 		sb.append(" select path, 0 from foto where path=?");
@@ -437,6 +484,9 @@ public class FotoDB {
 		sb.append(" from foto where creationdate between");
 		sb.append(" date(?,'-5 days') and date(?,'+5 days')");
 		sb.append(" and isMissing=0");
+		if( excludeDocumentary ) {
+			sb.append(" and (category is NULL OR category <> 'documentary')");
+		}
 		sb.append(" order by creationdate");
 
 		String sql = sb.toString();
@@ -445,13 +495,13 @@ public class FotoDB {
 		return res;
 	}
 
-	public List<Foto> searchCloseLocation(String path, int page, int pagesize) throws SQLException {
+	public List<Foto> searchCloseLocation(String path, int page, int pagesize) throws Exception {
 
 		List<Foto> res = new ArrayList<Foto>();
 
 		Foto ref = getFoto(path);
 		if ("NoLongitude".equals(ref.geo_long)) {
-			return res;
+			throw new Exception("This foto has no geo location to use as reference");
 		}
 
 		double lng = Double.parseDouble(ref.geo_long);
@@ -466,6 +516,9 @@ public class FotoDB {
 		sb.append(" cast(geo_long as real) between ? and ?");
 		sb.append(" and cast(geo_lat as real) between ? and ?");
 		sb.append(" and isMissing=0");
+		if( excludeDocumentary ) {
+			sb.append(" and (category is NULL OR category <> 'documentary')");
+		}
 
 		String sql = sb.toString();
 
@@ -507,10 +560,10 @@ public class FotoDB {
 		for (int i = start; i < start + pagesize && i < res.size(); i++) {
 			r2.add(res.get(i));
 		}
-//		System.out.println(String.format("compared to: %s", ref.path));
-//		for (Foto f : r2) {
-//			System.out.println(String.format("%.3f %s", f.tmpKmFrom, f.path));
-//		}
+		// System.out.println(String.format("compared to: %s", ref.path));
+		// for (Foto f : r2) {
+		// System.out.println(String.format("%.3f %s", f.tmpKmFrom, f.path));
+		// }
 
 		return r2;
 	}
@@ -871,5 +924,16 @@ public class FotoDB {
 	public static void note(String fmt, Object... args) {
 		System.out.println(String.format(fmt, args));
 	}
+	
+	public void setExcludeDocumentary(boolean val) {
+		excludeDocumentary = val;
+	}
 
+	public void toggleExcludeDocumentary() {
+		if( excludeDocumentary) {
+			excludeDocumentary = false;
+		} else {
+			excludeDocumentary = true;
+		}
+	}
 }

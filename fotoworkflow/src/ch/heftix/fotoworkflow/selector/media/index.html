@@ -73,6 +73,7 @@
 	    	<li><a id="menuImport" href="#"> Import Photos</a></li>
 	    	<li><a id="grid2_4" href="#"> 4 &times; 2</a></li>
 	    	<li><a id="grid1_1" href="#"> 1 &times; 1</a></li>
+	    	<li><a id="exclude_documentary" href="#"> Toggle exclude documentary</a></li>
 	    	<li><a id="ping" href="#"> Ping</a></li>
 		</ul>
 	</div>
@@ -323,7 +324,7 @@ function showFoto(data) {
 
 		img.popover(po_opt);
 
-		var ip = $("<input class='form-control w60' />", { type:"text" })
+		var ip = $("<input class='form-control' />", { type:"text" })
 		if (typeof(item.note) != "undefined" && item.note.length > 0) {
 			ip.val(item.note);
 		}
@@ -547,6 +548,13 @@ $('#grid2_4').on('click', function(e) {
 
 $('#grid1_1').on('click', function(e) {
 	setRowsCols(1,1);
+});
+
+$('#exclude_documentary').on('click', function(e) {
+	$.getJSON("/?cmd=exclude-documentary", function(r){
+		_note(r.code, r.msg);
+	});
+	searchFoto();
 });
 
 jwerty.key('shift+1', function () { 

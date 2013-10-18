@@ -10,49 +10,31 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
-import java.io.PrintStream;
-
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
+import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 
 /**
- * update a DB entry for a given foto
+ * update phash of given foto
  */
-public class UpdatePHashCommand implements WebCommand {
+public class UpdatePHashCommand extends BaseWebCommand {
 
-	FotoSelector fs = null;
-
-	public UpdatePHashCommand(FotoSelector fs) throws Exception {
-		this.fs = fs;
+	public UpdatePHashCommand(FotoSelector fs) {
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
+		String path = q.get("path");
 
-			long time = System.currentTimeMillis();
+		FotoDB db = fs.getDB();
 
-			Query q = request.getQuery();
-			String path = q.get("path");
-			
-			FotoDB db = fs.getDB();
+		db.updatePHash(path);
 
-			db.updatePHash(path);
-
-			response.setValue("Content-Type", "text/plain");
-			response.setDate("Last-Modified", time);
-
-			PrintStream body = response.getPrintStream();
-			body.println("done");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		jr.code = "ok";
+		jr.msg = String.format("photo hash updated for %s", path);
 	}
 
 }

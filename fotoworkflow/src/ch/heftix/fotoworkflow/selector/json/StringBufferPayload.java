@@ -18,6 +18,10 @@ public class StringBufferPayload implements Payload {
 	public void append(String s) {
 		sb.append(s);
 	}
+	
+	public int length() {
+		return sb.length();
+	}
 
 	public String toJSON() {
 		return sb.toString();

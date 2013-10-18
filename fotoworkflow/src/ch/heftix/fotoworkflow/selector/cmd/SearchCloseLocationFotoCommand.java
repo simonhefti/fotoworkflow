@@ -13,70 +13,37 @@ package ch.heftix.fotoworkflow.selector.cmd;
 import java.util.List;
 
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.Foto;
 import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
  * search foto based on date
  */
-public class SearchCloseLocationFotoCommand implements WebCommand {
+public class SearchCloseLocationFotoCommand extends BaseWebCommand {
 
-	FotoSelector fs = null;
-
-	public SearchCloseLocationFotoCommand(FotoSelector fs) throws Exception {
-		this.fs = fs;
+	public SearchCloseLocationFotoCommand(FotoSelector fs) {
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
+		String path = q.get("path");
+		int page = q.getInteger("p");
+		int pagesize = q.getInteger("n");
 
-			JsonResponse jr = new JsonResponse();
+		FotoDB db = fs.getDB();
 
-			StringBufferPayload pl = new StringBufferPayload();
+		List<Foto> fns = db.searchCloseLocation(path, page, pagesize);
 
-			Query q = request.getQuery();
-			String path = q.get("path");
-			int page = q.getInteger("p");
-			int pagesize = q.getInteger("n");
+		StringBufferPayload pl = new StringBufferPayload();
+		BaseWebCommand.list(fns, pl);
 
-			FotoDB db = fs.getDB();
-
-			List<Foto> fns = db.searchCloseLocation(path, page, pagesize);
-
-			pl.append("[");
-
-			boolean first = true;
-
-			for (Foto fn : fns) {
-				String line = fn.toJSON();
-				if (first) {
-					first = false;
-				} else {
-					line = ", " + line;
-				}
-				pl.append(line);
-			}
-
-			pl.append("]");
-
-			jr.code = "ok";
-			jr.payload = pl;
-
-			JsonHelper.send(jr, response);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		jr.payload = pl;
+		jr.code = "ok";
 	}
 
 }

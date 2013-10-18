@@ -14,78 +14,56 @@ import java.io.File;
 import java.util.regex.Pattern;
 
 import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
 import ch.heftix.fotoworkflow.selector.FotoImport;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 
-public class ImportCommand implements WebCommand {
+public class ImportCommand extends BaseWebCommand {
 
 	TikaMetadataHelper mdh = new TikaMetadataHelper();
 	Pattern reExtensionFilter = Pattern.compile("JPG|JPEG|jpeg|jpg");
-	FotoSelector fs = null;
 
 	public ImportCommand(FotoSelector fs) {
-		this.fs = fs;
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
-			JsonResponse jr = new JsonResponse();
+		String path = q.get("path");
+		String pattern = q.get("pattern");
+		String note = q.get("note");
 
-			Query q = request.getQuery();
-			String path = q.get("path");
-			String pattern = q.get("pattern");
-			String note = q.get("note");
-
-			boolean ok = true;
-
-			if (null == path || path.length() < 1) {
-				ok = false;
-				jr.code = "error";
-				jr.msg = "path is required";
-			}
-			if (null == pattern || pattern.length() < 1) {
-				ok = false;
-				jr.code = "error";
-				jr.msg = "pattern is required";
-			}
-
-			FotoImport fi = new FotoImport(fs, pattern, note);
-			File root = new File(path);
-
-			if (!root.exists()) {
-				jr.code = "error";
-				jr.msg = String.format("does not exist: %s", path);
-				ok = false;
-			}
-
-			if (ok && !root.isDirectory()) {
-				ok = false;
-				jr.code = "error";
-				jr.msg = String.format("must be directory: %s", path);
-			}
-
-			if (ok) {
-				fs.setConf("importPattern", pattern); // store for later use
-				// efu.setDryRun();
-				fi.visitAllDirsAndFiles(root);
-				jr.code = "ok";
-				jr.msg = String.format("import complete: %s", path);
-			}
-
-			JsonHelper.send(jr, response);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (null == path || path.length() < 1) {
+			jr.code = "error";
+			jr.msg = "path is required";
+			return;
+		}
+		if (null == pattern || pattern.length() < 1) {
+			jr.code = "error";
+			jr.msg = "pattern is required";
+			return;
 		}
 
-	}
+		FotoImport fi = new FotoImport(fs, pattern, note);
+		File root = new File(path);
 
+		if (!root.exists()) {
+			jr.code = "error";
+			jr.msg = String.format("does not exist: %s", path);
+			return;
+		}
+
+		if (!root.isDirectory()) {
+			jr.code = "error";
+			jr.msg = String.format("must be directory: %s", path);
+			return;
+		}
+
+		fs.setConf("importPattern", pattern); // store for later use
+		fi.visitAllDirsAndFiles(root);
+		jr.code = "ok";
+		jr.msg = String.format("import complete: %s", path);
+	}
 }
