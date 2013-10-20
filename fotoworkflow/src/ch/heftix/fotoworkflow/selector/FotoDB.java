@@ -32,6 +32,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,8 +54,10 @@ public class FotoDB {
 
 	QueryRunner fotoExistsQR = new QueryRunner();
 	QueryRunner thumbnailExistsQR = new QueryRunner();
+	QueryRunner countFotosQR = new QueryRunner();
 
 	ResultSetHandler<Integer> fotoExistsRSH = null;
+	ResultSetHandler<Integer> countFotosRSH = null;
 	ResultSetHandler<Thumbnail> thumbnailExistsRSH = null;
 
 	TikaMetadataHelper mdh = new TikaMetadataHelper();
@@ -66,8 +70,10 @@ public class FotoDB {
 	String pModel = "@{Model}";
 
 	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing";
-	
+
 	private boolean excludeDocumentary = false;
+
+	Queue<Thumbnail> toBeCachedThumbnails = new ArrayBlockingQueue<Thumbnail>(16);
 
 	protected FotoDB() throws Exception {
 
@@ -94,6 +100,8 @@ public class FotoDB {
 					return 0;
 				}
 			};
+
+			countFotosRSH = fotoExistsRSH;
 
 			thumbnailExistsRSH = new ResultSetHandler<Thumbnail>() {
 				public Thumbnail handle(ResultSet rs) throws SQLException {
@@ -420,12 +428,12 @@ public class FotoDB {
 		if (null == searchTerm) {
 			searchTerm = "";
 		}
-		
+
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("select ");
 		sb.append(fotoattrs);
 		sb.append(" from foto where isMissing=0");
-		if( excludeDocumentary ) {
+		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
 		if (searchTerm.length() > 0) {
@@ -453,11 +461,11 @@ public class FotoDB {
 		sb.append(" from foto where path in (");
 		sb.append(" select distinct p from (");
 		sb.append(" select p2 p, d from distance where p1 = ? and d < 15");
-		if( excludeDocumentary ) {
+		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
 		sb.append(" union all");
-		if( excludeDocumentary ) {
+		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
 		sb.append(" select p1 p, d from distance where p2 = ? and d < 15");
@@ -473,7 +481,35 @@ public class FotoDB {
 		return res;
 	}
 
+	/**
+	 * search fotos based on date of reference foto
+	 * 
+	 * @param path
+	 *            primary key of reference foto
+	 * @param page
+	 *            which page to return
+	 * @param pagesize
+	 *            current page size
+	 * @return search result (list of fotos)
+	 * @throws SQLException
+	 */
 	public List<Foto> searchCloseDate(String path, int page, int pagesize) throws SQLException {
+		List<Foto> res = new ArrayList<Foto>();
+		res = searchCloseDate(path, page, pagesize, 3);
+		// int nDays = 2;
+		// int cnt = 0;
+		// while (res.size() < pagesize * 2 && cnt < 7) {
+		// res = searchCloseDate(path, page, pagesize, nDays);
+		// nDays *= 2;
+		// cnt++;
+		// System.out.println(String.format("nDays: %d cnt %d size %d", nDays,
+		// cnt, res.size()));
+		//
+		// }
+		return res;
+	}
+
+	public List<Foto> searchCloseDate(String path, int page, int pagesize, int nDays) throws SQLException {
 
 		Foto ref = getFoto(path);
 		String cd = ref.creationdate.substring(0, 10);
@@ -482,9 +518,9 @@ public class FotoDB {
 		sb.append("select ");
 		sb.append(fotoattrs);
 		sb.append(" from foto where creationdate between");
-		sb.append(" date(?,'-5 days') and date(?,'+5 days')");
+		sb.append(String.format(" date(?,'-%d days') and date(?,'+%d days')", nDays, nDays));
 		sb.append(" and isMissing=0");
-		if( excludeDocumentary ) {
+		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
 		sb.append(" order by creationdate");
@@ -507,22 +543,11 @@ public class FotoDB {
 		double lng = Double.parseDouble(ref.geo_long);
 		double lat = Double.parseDouble(ref.geo_lat);
 
-		StringBuffer sb = new StringBuffer(1024);
-		sb.append("select ");
-		sb.append(fotoattrs);
-		sb.append(" from foto where");
-		// cast(geo_long as real) between 4 and 8 and cast(geo_lat as real)
-		// between 43 and 50;
-		sb.append(" cast(geo_long as real) between ? and ?");
-		sb.append(" and cast(geo_lat as real) between ? and ?");
-		sb.append(" and isMissing=0");
-		if( excludeDocumentary ) {
-			sb.append(" and (category is NULL OR category <> 'documentary')");
-		}
+		GeoPoint refpoint = new GeoPoint();
+		refpoint.setLng(lng);
+		refpoint.setLat(lat);
 
-		String sql = sb.toString();
-
-		res = searchFotoBySQL(sql, lng - 5, lng + 5, lat - 5, lat + 5);
+		res = searchCloseLocation(page, pagesize, refpoint);
 
 		GeoPoint gp = new GeoPoint();
 		gp.setLng(lng);
@@ -530,10 +555,12 @@ public class FotoDB {
 
 		// calculate distances
 		for (Foto f : res) {
-			GeoPoint g2 = new GeoPoint();
-			g2.setLng(f.geo_long);
-			g2.setLat(f.geo_lat);
-			f.tmpKmFrom = g2.kmFrom(gp);
+			if (!"NoLongitude".equals(f.geo_long)) {
+				GeoPoint g2 = new GeoPoint();
+				g2.setLng(f.geo_long);
+				g2.setLat(f.geo_lat);
+				f.tmpKmFrom = g2.kmFrom(gp);
+			}
 		}
 
 		Collections.sort(res, new Comparator<Foto>() {
@@ -560,12 +587,57 @@ public class FotoDB {
 		for (int i = start; i < start + pagesize && i < res.size(); i++) {
 			r2.add(res.get(i));
 		}
-		// System.out.println(String.format("compared to: %s", ref.path));
-		// for (Foto f : r2) {
-		// System.out.println(String.format("%.3f %s", f.tmpKmFrom, f.path));
-		// }
 
 		return r2;
+	}
+
+	public List<Foto> searchCloseLocation(int page, int pagesize, GeoPoint ref) throws Exception {
+
+		List<Foto> res = new ArrayList<Foto>();
+
+		// System.out.println(String.format("ref: %s", ref));
+
+		StringBuffer sb = new StringBuffer(1024);
+		sb.append("select ");
+		sb.append(fotoattrs);
+		sb.append(" from foto where");
+		sb.append(" cast(geo_long as real) between ? and ?");
+		sb.append(" and cast(geo_lat as real) between ? and ?");
+		sb.append(" and isMissing=0");
+		if (excludeDocumentary) {
+			sb.append(" and (category is NULL OR category <> 'documentary')");
+		}
+
+		String sql = sb.toString();
+
+		int delta = 5;
+		res = searchFotoBySQL(page, pagesize, sql, ref.lng_deg - delta, ref.lng_deg + delta, ref.lat_deg - delta,
+				ref.lat_deg + delta);
+		// int cnt = 0;
+		// while (res.size() < pagesize * 2 && cnt < 7) {
+		// res = searchFotoBySQL(page, pagesize, sql, ref.lng_deg - delta,
+		// ref.lng_deg + delta, ref.lat_deg - delta,
+		// ref.lat_deg + delta);
+		// delta *= 2;
+		// cnt++;
+		// System.out.println(String.format("delta: %d cnt %d size %d", delta,
+		// cnt, res.size()));
+		// }
+
+		return res;
+	}
+
+	public int countFotos() throws SQLException {
+		int cnt = countFotosQR.query(conn, "select count(path) from foto", countFotosRSH);
+		return cnt;
+	}
+
+	public List<Foto> feelLucky(String searchTerm, int page, int pagesize) throws Exception {
+
+		// System.out.println(String.format("feel lucky: page %d", page));
+		List<Foto> res = searchFoto(searchTerm, page, pagesize);
+
+		return res;
 	}
 
 	private List<Foto> searchFotoBySQL(int page, int pagesize, String sql, Object... args) throws SQLException {
@@ -607,7 +679,7 @@ public class FotoDB {
 		return res;
 	}
 
-	private List<Foto> searchFotoBySQL(String sql, Object... args) throws SQLException {
+	private List<Foto> unboundSearchFotoBySQL(String sql, Object... args) throws SQLException {
 
 		List<Foto> res = null;
 
@@ -778,10 +850,16 @@ public class FotoDB {
 	}
 
 	private void insertThumbnail(Thumbnail t) throws SQLException {
-		QueryRunner qr = new QueryRunner();
-		qr.update(conn, "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)", t.path, t.image,
-				t.height, t.mimeType);
-		// note(":) inserted thumbnail for %s", t.path);
+		toBeCachedThumbnails.add(t);
+		if (toBeCachedThumbnails.size() >= 8) {
+			QueryRunner qr = new QueryRunner();
+			while( ! toBeCachedThumbnails.isEmpty()) {
+				Thumbnail tn = toBeCachedThumbnails.remove();
+				// note("inserting %s", tn.path);
+				qr.update(conn, "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)", tn.path,
+						tn.image, tn.height, tn.mimeType);
+			}
+		}
 	}
 
 	private byte[] slurp(File f) throws IOException {
@@ -924,13 +1002,13 @@ public class FotoDB {
 	public static void note(String fmt, Object... args) {
 		System.out.println(String.format(fmt, args));
 	}
-	
+
 	public void setExcludeDocumentary(boolean val) {
 		excludeDocumentary = val;
 	}
 
 	public void toggleExcludeDocumentary() {
-		if( excludeDocumentary) {
+		if (excludeDocumentary) {
 			excludeDocumentary = false;
 		} else {
 			excludeDocumentary = true;

@@ -10,34 +10,42 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
+import java.util.List;
+
 import org.simpleframework.http.Query;
 
+import ch.heftix.fotoworkflow.selector.Foto;
 import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
+import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
- * invalidate cached thumbnail
- * 
+ * return random set of fotos
  */
-public class InvalidateThumbnailCommand extends BaseWebCommand {
+public class FeelLuckyCommand extends BaseWebCommand {
 
-	public InvalidateThumbnailCommand(FotoSelector fs) {
+	public FeelLuckyCommand(FotoSelector fs) {
 		super(fs);
 	}
 
 	public void process(Query q, JsonResponse jr) throws Exception {
 
-		String path = (String) q.get("path");
-
-		if (null == path) {
-			return;
-		}
+		String searchterm = q.get("st");
+		// int page = q.getInteger("p");
+		int pagesize = q.getInteger("n");
 
 		FotoDB db = fs.getDB();
-		db.invalidateThumbnail(path);
+		// int cnt = db.countFotos();
+		
+		int page = (int) (Math.random() * db.countFotos() / pagesize);
+		List<Foto> fns = db.feelLucky(searchterm, page, pagesize);
 
+		StringBufferPayload pl = new StringBufferPayload();
+		BaseWebCommand.list(fns, pl);
+
+		jr.payload = pl;
 		jr.code = "ok";
-		jr.msg = "done";
 	}
+
 }

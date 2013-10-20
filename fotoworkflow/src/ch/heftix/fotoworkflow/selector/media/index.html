@@ -6,12 +6,7 @@
 <link href="css/bootstrap.min.css" rel="stylesheet">
 <link href="css/bootstrap-glyphicons.css" rel="stylesheet">
 
-<!-- <script src="http://code.jquery.com/jquery.js"></script> -->
 <script src="js/jquery.js"></script>
-<!-- script src="js/zepto.min.js"></script> 
-<script src="js/data.js"></script>
-<script src="js/selector.js"></script>
-<script> window.jQuery = Zepto; </script> -->
 <script src="js/jsOAuth.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/jwerty.js"></script>
@@ -570,16 +565,6 @@ jwerty.key('shift+→', function () {
 	searchFoto();
 }, this, "body");
 
-// jwerty.key('shift+ctrl+→', function () {
-// 	img_on_page++;
-// 	if( img_on_page > 5) {
-// 		img_on_page = 0;
-// 	}
-// 	var li = $('#output ul').children().get(img_on_page);
-// 	var f = $(li).data('path');
-// 	$("#overlay_img").attr('src',"?cmd=get&path=" + f);
-// }, this, "#myModal");
-
 jwerty.key('shift+←', function () { 
 	page--;
 	searchFoto();
@@ -588,18 +573,9 @@ jwerty.key('shift+←', function () {
 var tst = {"code":"info","msg":"Welcome to Foto Workflow. Nice to see you."};
 _note(tst.code, tst.msg);
 
-// Zepto(function($){ // - page ready
-// 	page = 1;
-// 	search_cmd = "list";
-// 	search_k = "st";
-// 	search_v = $('#query').val();
-// 	searchFoto();
-// 	_readImportPattern();
-// });
-
 $( document ).ready( function() {
 	page = 1;
-	search_cmd = "list";
+	search_cmd = "feellucky";
 	search_k = "st";
 	search_v = $('#query').val();
 	searchFoto();

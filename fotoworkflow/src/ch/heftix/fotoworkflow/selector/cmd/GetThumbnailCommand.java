@@ -17,6 +17,7 @@ import org.simpleframework.http.Query;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 
+import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.Thumbnail;
 
@@ -53,8 +54,10 @@ public class GetThumbnailCommand implements WebCommand {
 			if (!f.exists()) {
 				return;
 			}
+			
+			FotoDB db = fs.getDB();
 
-			Thumbnail thumbnail = fs.getThumbnail(f, w);
+			Thumbnail thumbnail = db.getThumbnail(f, w);
 
 			OutputStream os = response.getOutputStream();
 

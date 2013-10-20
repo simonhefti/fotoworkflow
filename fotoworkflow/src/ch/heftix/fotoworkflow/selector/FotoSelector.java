@@ -30,6 +30,7 @@ import org.simpleframework.transport.connect.Connection;
 import org.simpleframework.transport.connect.SocketConnection;
 
 import ch.heftix.fotoworkflow.selector.cmd.ExcludeDocumentaryCommand;
+import ch.heftix.fotoworkflow.selector.cmd.FeelLuckyCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCLCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetConfigCommand;
@@ -75,6 +76,7 @@ public class FotoSelector implements Container {
 		fs.register("similar", new SearchSimilarFotoCommand(fs));
 		fs.register("closedate", new SearchCloseDateFotoCommand(fs));
 		fs.register("closeloc", new SearchCloseLocationFotoCommand(fs));
+		fs.register("feellucky", new FeelLuckyCommand(fs));
 		fs.register("get", new GetCommand()); // get a single photo
 
 		fs.register("default", new GetCLCommand(fs)); // file via class loader
@@ -165,26 +167,6 @@ public class FotoSelector implements Container {
 
 	public FotoDB getDB() {
 		return this.db;
-	}
-
-	public Thumbnail getThumbnail(File f, int width) {
-		Thumbnail res = null;
-		try {
-			res = db.getThumbnail(f, width);
-		} catch (Exception e) {
-			// TODO
-			e.printStackTrace();
-		}
-		return res;
-	}
-
-	public void invalidateThumbnail(String path) {
-		try {
-			db.invalidateThumbnail(path);
-		} catch (Exception e) {
-			// TODO
-			e.printStackTrace();
-		}
 	}
 
 	public List<Foto> searchFoto(String searchTerm, int page, int pagesize) throws SQLException {
