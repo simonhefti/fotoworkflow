@@ -10,56 +10,39 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
+import org.simpleframework.http.Query;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
- * search foto within foto index
+ * get next message from queue
  */
-public class NextMessageCommand implements WebCommand {
-
-	FotoSelector fs = null;
+public class NextMessageCommand extends BaseWebCommand {
 
 	public NextMessageCommand(FotoSelector fs) throws Exception {
-		this.fs = fs;
+		super(fs);
 	}
 
-	public void handle(Request request, Response response) {
+	public void process(Query q, JsonResponse jr) throws Exception {
 
-		try {
+		StringBufferPayload pl = new StringBufferPayload();
 
-			JsonResponse jr = new JsonResponse();
+		pl.append("[");
 
-			StringBufferPayload pl = new StringBufferPayload();
+		String msg = fs.queue.poll();
 
-			pl.append("[");
-
-			String msg = fs.queue.poll();
-
-			if (null != msg) {
-				pl.append("{");
-				pl.append("\"msg\": \"" + msg + "\"");
-				pl.append("}");
-			}
-
-			pl.append("]");
-
-			jr.code = "ok";
-			jr.msg = msg;
-			jr.payload = pl;
-
-			JsonHelper.send(jr, response);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (null != msg) {
+			pl.append("{");
+			pl.append("\"msg\": \"" + msg + "\"");
+			pl.append("}");
 		}
 
-	}
+		pl.append("]");
 
+		jr.code = "ok";
+		jr.msg = msg;
+		jr.payload = pl;
+	}
 }

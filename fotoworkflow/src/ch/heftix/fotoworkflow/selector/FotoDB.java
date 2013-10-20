@@ -162,6 +162,24 @@ public class FotoDB {
 		insertFoto(conn, f, note);
 	}
 
+	private int getIntFromDateString(String str) {
+		return getIntFromDateString(str, 0);
+	}
+
+	private int getIntFromDateString(String str, int def) {
+
+		int res = def;
+		if (null == str || str.length() < 1 || "NoDate".equals(str)) {
+			return def;
+		}
+		try {
+			res = Integer.parseInt(str);
+		} catch (NumberFormatException e) {
+			res = def;
+		}
+		return res;
+	}
+
 	public void insertFoto(Connection c, File f, String note) throws IOException, SQLException {
 
 		if (null == f) {
@@ -190,11 +208,11 @@ public class FotoDB {
 		String model = mdh.format(f, md, "@{Model}");
 		String make = mdh.format(f, md, "@{Make}");
 		String cd = mdh.format(f, md, "@{CreationDate: yyyy-MM-dd'T'HHmm}");
-		int year = Integer.parseInt(mdh.format(f, md, "@{CreationDate: yyyy}"));
-		int month = Integer.parseInt(mdh.format(f, md, "@{CreationDate: MM}"));
-		int day = Integer.parseInt(mdh.format(f, md, "@{CreationDate: dd}"));
-		int hour = Integer.parseInt(mdh.format(f, md, "@{CreationDate: HH}"));
-		int minute = Integer.parseInt(mdh.format(f, md, "@{CreationDate: mm}"));
+		int year = getIntFromDateString(mdh.format(f, md, "@{CreationDate: yyyy}"));
+		int month = getIntFromDateString(mdh.format(f, md, "@{CreationDate: MM}"));
+		int day = getIntFromDateString(mdh.format(f, md, "@{CreationDate: dd}"));
+		int hour = getIntFromDateString(mdh.format(f, md, "@{CreationDate: HH}"));
+		int minute = getIntFromDateString(mdh.format(f, md, "@{CreationDate: mm}"));
 		String lng = mdh.format(f, md, "@{Longitude}");
 		String lat = mdh.format(f, md, "@{Latitude}");
 		String o = mdh.format(f, md, "@{Orientation}");
@@ -806,7 +824,7 @@ public class FotoDB {
 		return res;
 	}
 
-	private Thumbnail createThumbnail(Foto f, int height) throws FileNotFoundException, IOException {
+	private synchronized Thumbnail createThumbnail(Foto f, int height) throws FileNotFoundException, IOException {
 
 		// note(":) creating thumbnail for %s", f.path);
 

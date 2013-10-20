@@ -21,8 +21,6 @@ import ch.heftix.fotoworkflow.selector.json.JsonResponse;
  */
 public class UpdatePHashsCommand extends BaseWebCommand {
 
-	FotoSelector fs = null;
-
 	public UpdatePHashsCommand(FotoSelector fs) {
 		super(fs);
 	}
