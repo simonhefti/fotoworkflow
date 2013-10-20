@@ -35,8 +35,8 @@ public class TikaMetadataHelper {
 	private DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 	private MetadataFormatPattern[] mfps = null;
 	private Pattern reFileExtension = Pattern.compile("[.]([^.]+)$");
-	Pattern repetitionFinder = Pattern.compile(".+(.{2,})_\\1+.*");
-	
+	Pattern repetitionFinder = Pattern.compile(".+(.{3,})_\\1+.*");
+
 	public String fixFilenameRepetition(String fn) {
 
 		String res = fn;
@@ -44,14 +44,31 @@ public class TikaMetadataHelper {
 		String repeated = matcher.matches() ? matcher.group(1) : null;
 		while (null != repeated) {
 			// System.out.println("repeated '" + repeated + "'");
-			res = fn.replaceFirst(repeated + "_", "");
+			res = res.replaceFirst(repeated + "_", "");
+			// System.out.println("  new: '" + res + "'");
 			matcher = repetitionFinder.matcher(res);
 			repeated = matcher.matches() ? matcher.group(1) : null;
 		}
 		return res;
 	}
-	
-	
+
+	public String fixHashedFilename(String fn) {
+
+		String res = fn;
+
+		int pos = fn.lastIndexOf("_");
+
+		if (pos > 0) {
+			String uid = fn.substring(pos + 1, fn.length());
+			String pre = fn.substring(0, pos);
+			if (uid.length() > 16) {
+				String ext = getExtension(fn);
+				int nbr = (int)(99999 * Math.random());
+				res = String.format("%s_%d.%s", pre, nbr, ext);
+			}
+		}
+		return res;
+	}
 
 	/** get GPS Altitude field */
 	public double getAltitude(Metadata md) {
@@ -399,6 +416,9 @@ public class TikaMetadataHelper {
 		}
 
 		res = sb.toString();
+		
+		res = fixHashedFilename(res);
+		res = fixFilenameRepetition(res);
 
 		if (skipExisting) {
 			File t1 = new File(res);
@@ -424,8 +444,6 @@ public class TikaMetadataHelper {
 				res = r1;
 			}
 		}
-		
-		res = fixFilenameRepetition(res);
 
 
 		return res;

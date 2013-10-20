@@ -10,7 +10,6 @@
  */
 package ch.heftix.fotoworkflow.selector;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.sql.SQLException;
@@ -174,7 +173,7 @@ public class FotoSelector implements Container {
 		res = db.searchFoto(searchTerm, page, pagesize);
 		return res;
 	}
-	
+
 	public void toggleExcludeDocumentary() {
 		db.toggleExcludeDocumentary();
 	}

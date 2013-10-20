@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="fotoworkflow" default="deliver" basedir=".">
+	<description>fotoworkflow build file.</description>
+
+	<path id="project.class.path">
+		<pathelement location="generated/classes" />
+		<pathelement location="lib/commons-codec-1.7.jar" />
+		<pathelement location="lib/commons-dbutils-1.5.jar" />
+		<pathelement location="lib/evernote-api-1.23.jar" />
+		<pathelement location="lib/scribe-1.3.3.jar" />
+		<pathelement location="lib/simple-5.1.5.jar" />
+		<pathelement location="lib/sqlite-jdbc-3.8.0-20130827.035027-1.jar" />
+		<pathelement location="lib/thumbnailator-0.4.6.jar" />
+		<pathelement location="lib/tika-app-1.3.jar" />
+	</path>
+
+	<target name="clean">
+		<!-- Delete the bin directory tree -->
+		<delete dir="generated" failonerror="false" />
+	</target>
+
+	<target name="compile">
+		<mkdir dir="generated/classes" />
+		<javac srcdir="src" destdir="generated/classes" includes="**" target="1.5" source="1.5">
+			<classpath refid="project.class.path" />
+		</javac>
+		<copy file="src/ch/heftix/fotoworkflow/selector/foto-thumbnails-db.sql" todir="generated/classes/ch/heftix/fotoworkflow/selector" />
+		<copy file="src/ch/heftix/fotoworkflow/selector/extensions.properties" todir="generated/classes/ch/heftix/fotoworkflow/selector" />
+		<copy file="src/ch/heftix/fotoworkflow/selector/resources.properties" todir="generated/classes/ch/heftix/fotoworkflow/selector" />
+		<copy todir="generated/classes/ch/heftix/fotoworkflow/selector/media">
+			<fileset dir="src/ch/heftix/fotoworkflow/selector/media" />
+		</copy>
+	</target>
+
+	<target name="jar" depends="compile, version">
+		
+		<unzip src="lib/commons-codec-1.7.jar" dest="generated/classes" />
+		<unzip src="lib/commons-dbutils-1.5.jar" dest="generated/classes" />
+		<unzip src="lib/evernote-api-1.23.jar" dest="generated/classes" />
+		<unzip src="lib/scribe-1.3.3.jar" dest="generated/classes" />
+		<unzip src="lib/simple-5.1.5.jar" dest="generated/classes" />
+		<unzip src="lib/sqlite-jdbc-3.8.0-20130827.035027-1.jar" dest="generated/classes" />
+		<unzip src="lib/thumbnailator-0.4.6.jar" dest="generated/classes" />
+		<unzip src="lib/tika-app-1.3.jar" dest="generated/classes" />
+		<jar jarfile="${fotoworkflow.delivery}">
+			<fileset dir="generated/classes" />
+			<manifest>
+				<attribute name="Built-By" value="Simon Hefti" />
+				<attribute name="Main-Class" value="ch.heftix.fotoworkflow.selector.FotoSelector" />
+			</manifest>
+
+		</jar>
+	</target>
+
+	<target name="deliver" depends="clean, jar" />
+
+	<target name="version" depends="compile">
+		<java classname="ch.heftix.fotoworkflow.selector.Version" classpath="generated/classes" outputproperty="fotoworkflow.v" />
+		<echo message="building version: ${fotoworkflow.v}" />
+		<property name="fotoworkflow.delivery" value="generated/fotoworkflow-${fotoworkflow.v}.jar" />
+	</target>
+
+</project>

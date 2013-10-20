@@ -45,6 +45,8 @@ public class FotoImport {
 
 	public void handleFile(File file) throws Exception {
 
+		// System.out.println("handling file: " + file);
+
 		if (null == file) {
 			return;
 		}
@@ -69,17 +71,19 @@ public class FotoImport {
 		}
 
 		String mimeType = metadata.get("Content-Type");
+		// System.out.println("  mime type: " + mimeType);
+		
 		if (!mimeType.startsWith("image")) {
 			return;
 		}
 
 		// check for source
-		String make = metadata.get("Make");
-		if (null == make || make.length() < 1) {
-			note("make: %s (%s)", make, file);
-		}
+//		String make = metadata.get("Make");
+//		if (null == make || make.length() < 1) {
+//			note("make: %s (%s)", make, file);
+//		}
 
-		System.out.println(file.getAbsolutePath());
+//		System.out.println(file.getAbsolutePath());
 
 		String newName = mdh.format(file);
 		if (null == newName) {
@@ -114,6 +118,9 @@ public class FotoImport {
 	}
 
 	public void visitAllDirsAndFiles(File dir) throws Exception {
+		
+		// System.out.println("visiting: " + dir);
+		
 		if (null == dir) {
 			return;
 		}

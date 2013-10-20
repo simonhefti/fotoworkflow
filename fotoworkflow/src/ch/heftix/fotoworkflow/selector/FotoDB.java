@@ -205,13 +205,17 @@ public class FotoDB {
 
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("insert into foto (path,mimetype,creationdate");
-		sb.append(",year,month,day,hour,min");
-		sb.append("w,h,make,model,geo_long,geo_lat,orientation");
+		sb.append(",year,month,day,hour,minute");
+		sb.append(",w,h,make,model,geo_long,geo_lat,orientation");
 		if (null != note && note.length() > 1) {
-			sb.append(",note=?");
+			sb.append(",note");
 		}
 		sb.append(", phash, isMissing)");
-		sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+		if (null != note && note.length() > 1) {
+			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+		} else {
+			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+		}
 		String sql = sb.toString();
 
 		QueryRunner qr = new QueryRunner();
@@ -853,7 +857,7 @@ public class FotoDB {
 		toBeCachedThumbnails.add(t);
 		if (toBeCachedThumbnails.size() >= 8) {
 			QueryRunner qr = new QueryRunner();
-			while( ! toBeCachedThumbnails.isEmpty()) {
+			while (!toBeCachedThumbnails.isEmpty()) {
 				Thumbnail tn = toBeCachedThumbnails.remove();
 				// note("inserting %s", tn.path);
 				qr.update(conn, "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)", tn.path,

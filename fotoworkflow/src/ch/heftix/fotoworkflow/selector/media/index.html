@@ -116,30 +116,15 @@
 	</div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 
-
-<!-- <div id="myModal" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true" width="600px">
-	<div class='lightbox-header'>
-		<button type="button" class="close" data-dismiss="lightbox" aria-hidden="true">&times;</button>
-	</div>
-	<div class='lightbox-content'>
-	  <img id="overlay_img" />
-	</div>
-</div>
- -->
-
-
 <script>
 
 var page = 1;
-// var img_on_page = 0;
 var cols = 4;
 var rows = 2;
 
 var search_cmd = "list";
 var search_k = "st";
 var search_v = "";
-
-
 
 var _notes = [];
 var _lastNote = 0;
@@ -150,7 +135,6 @@ var _showNote = function() {
 	console.log("_showNote: " + now + " " + diff + " len: " + _notes.length);
 	if( _notes.length > 0) {
 		if( diff < 1000) {
-			// console.log("_showNote: diff too small - setting new timeout");
 			setTimeout(_showNote,2000);
 		}
 		else {
@@ -163,7 +147,7 @@ var _showNote = function() {
 			if( "error" == n.code) {
 				style = 'alert-error';
 			}
-			$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+n.text+'</span></div>');
+			$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+shorten(n.text,64,"...")+'</span></div>');
 			//$('#msgbox').text(n.text);
 			_lastNote = now;
 			if( _notes.length > 0) {
@@ -414,7 +398,28 @@ var searchFoto = function searchFoto() {
 	$.getJSON(url,function(data){
 		showFoto(data);
 	});
+};
+
+function shorten(str, maxLen, replacement) {
+	var res = "";
+	if( undefined == str) {
+		return res;
+	}
+	if( str.length < maxLen) {
+		return str;
+	}
+	var half = maxLen / 2;
+	var rep = replacement.length;
+	if (rep > half) {
+	  // throw new IllegalArgumentException("replacement must be shorter than half of maxLen");
+	}
+	var pos = half - parseInt(Math.ceil(rep / 2.0));
+	res = str.substring(0,pos);
+	res += replacement;
+	res += str.substring(str.length - pos);
+	return res;
 }
+
 
 var elem = $('#search');
 elem.on('click', function(e) {
