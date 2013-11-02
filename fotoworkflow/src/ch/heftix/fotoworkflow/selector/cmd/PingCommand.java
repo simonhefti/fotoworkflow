@@ -27,10 +27,7 @@ public class PingCommand extends BaseWebCommand {
 	}
 
 	public void process(Query q, JsonResponse jr) throws Exception {
-
-		fs.queue.add("ping queue " + System.currentTimeMillis());
 		jr.code = "info";
 		jr.msg = "Thanks for asking. I'm doing fine. Time: " + new Date();
-		fs.queue.add("ping queue " + System.currentTimeMillis());
 	}
 }

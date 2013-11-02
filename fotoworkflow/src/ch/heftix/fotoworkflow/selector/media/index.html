@@ -56,12 +56,6 @@
 <body>
 
 <div class="form-inline">
-	<input id="query" tabindex="1" type="text" class="form-control">
-	<a id="Prev1" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-step-backward"></span></a>  
-	<a id="Prev" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
-	<a id="Next" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-right"></span></a>
-	<a id='doc-all' class='btn btn-primary btn-small' href="#"><span class="glyphicon glyphicon-thumbs-down"></span></a>
-	<input id="label-all" tabindex="2" type="text" class="form-control">
 	<div class="btn-group">
 		<a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
 			<span class="glyphicon glyphicon-wrench"></span>
@@ -76,6 +70,12 @@
 	    	<li><a id="ping" href="#"> Ping</a></li>
 		</ul>
 	</div>
+	<input id="query" tabindex="1" type="text" class="form-control">
+	<a id="Prev1" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-step-backward"></span></a>  
+	<a id="Prev" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
+	<a id="Next" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-right"></span></a>
+	<a id='doc-all' class='btn btn-primary btn-small' href="#"><span class="glyphicon glyphicon-thumbs-down"></span></a>
+	<input id="label-all" tabindex="2" type="text" class="form-control">
 	<div id="msgbox" style="float: right"></div>
 </div>
 
@@ -170,7 +170,8 @@ var _showNote = function() {
 	$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+shorten(n.text,64,"...")+'</span></div>');
 }
 
-setInterval ( "_showNote()", 1000 );
+setInterval ( "_showNote()", 600 );
+setInterval ( "_readNextMessages()", 1000 );
 
 var _note = function(code, text) {
 	if( undefined == code || undefined == text) {
@@ -193,7 +194,7 @@ var _save = function(path, k, v) {
 		return;
 	}
 	var url = "/?cmd=store&path=" + path + "&k=" + k + "&v="+v;
-	console.log("saving %s for %s of %s", v, k, path);
+	// console.log("saving v %s for k %s of path %s", v, k, path);
 	$.get(url, function(response){
 		_note("info", "saved " + v + " for " + path);
 	});
@@ -500,36 +501,44 @@ $('#doc-all').on('click', function(e) {
 	  _save(f,"category", "documentary");
   });  
 });
-$('#label-all').on('change', function(e) {
+
+function label_all() {
   $('#output div div').each(function(index) {
 	  var v = $(this);
 	  var f = v.data('path');
 	  var t = $('#label-all').val();
 	  _save(f,"note", t);
   });
+}
+
+$('#label-all').bind('keyup', function (e) {
+  if (e.keyCode == 13) {
+	label_all();
+  }
+});
+
+$('#label-all').on('change', function(e) {
+	label_all();
 });
 
 
-var _readMessageState = 1;
-
-function _readNextMessage() {
-	var url = "/?cmd=msg.next";
-	$.getJSON(url, function(r){
-		_note("info", r.msg);
-	});
-	if( 1 == _readMessageState) {
-		setTimeout(_readNextMessage,1000);
-	}
+function _readNextMessages() {
+	var url = "/?cmd=msg.get";
+	$.getJSON(url, function(data) {
+		$.each( data.payload, function( index, item ) {
+			console.log("nxt msg: " + item);
+			if( undefined != item && "null" != item) {
+				_note("info", item);
+			}
+		});
+  });
 }
 
 $('#ping').on('click', function(e) {
 	var url = "/?cmd=ping";
-	_readMessageState = 1;
-	_readNextMessage();
 	$.getJSON(url, function(r){
 		_note(r.code, r.msg);
 	});
-	_readMessageState = 0;
 });
 
 $('#menuImport').on('click', function(e) {
@@ -545,14 +554,11 @@ function updatePHashs() {
 
 $('#importStart').on('click', function(e) {
 	var url = "/?cmd=import&path=" + $('#importPath').val() + "&pattern=" + $('#importPattern').val() + "&note=" + $('#importNote').val();
-	_readMessageState = 1;
-	_readNextMessage();
 	$('#modalImport').modal('hide');
 	$.getJSON(url, function(r){
 		_note(r.code, r.msg);
 		updatePHashs();
 	});
-	_readMessageState = 0;
 });
 
 function setRowsCols(r, c) {
