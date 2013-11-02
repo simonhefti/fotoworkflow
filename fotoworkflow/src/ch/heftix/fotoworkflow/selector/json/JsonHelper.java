@@ -19,7 +19,7 @@ public class JsonHelper {
 	public static void send(JsonResponse jr, Response r) throws Exception {
 		long time = System.currentTimeMillis();
 
-		r.setValue("Content-Type", "text/html");
+		r.setValue("Content-Type", "application/json;charset=UTF-8");
 		r.setDate("Last-Modified", time);
 
 		PrintStream body = r.getPrintStream();

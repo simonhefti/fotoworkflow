@@ -10,8 +10,6 @@
  */
 package ch.heftix.fotoworkflow.selector.json;
 
-import ch.heftix.fotoworkflow.selector.UIUtil;
-
 public class JsonResponse {
 	public String code = "ok";
 	public String msg = "";
@@ -21,7 +19,7 @@ public class JsonResponse {
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("{");
 		sb.append("\"code\":\"" + code + "\"");
-		sb.append(",\"msg\":\"" + UIUtil.shorten(msg, 79, "...") + "\"");
+		sb.append(",\"msg\":\"" + msg + "\"");
 		if (null != payload) {
 			String pl = payload.toJSON();
 			if (null != pl && pl.length() > 0) {

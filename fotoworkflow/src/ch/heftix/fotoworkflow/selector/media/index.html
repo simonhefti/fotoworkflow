@@ -45,6 +45,9 @@
 	padding: 5px 35px 5px 5px;
 	margin-bottom: 0px;
 }
+#label-all {
+	width: 20%;
+}
 
 </style>
 
@@ -53,11 +56,12 @@
 <body>
 
 <div class="form-inline">
-	<input id="query" type="text" class="form-control input-xlarge search-query">
+	<input id="query" tabindex="1" type="text" class="form-control">
 	<a id="Prev1" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-step-backward"></span></a>  
 	<a id="Prev" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
 	<a id="Next" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-right"></span></a>
 	<a id='doc-all' class='btn btn-primary btn-small' href="#"><span class="glyphicon glyphicon-thumbs-down"></span></a>
+	<input id="label-all" tabindex="2" type="text" class="form-control">
 	<div class="btn-group">
 		<a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
 			<span class="glyphicon glyphicon-wrench"></span>
@@ -112,12 +116,10 @@
     	    <div class="modal-footer">
         		<a id="importStart" href="#" class="btn btn-primary">Start import</a>
         	</div>
-    	</div><!-- /.modal-content -->
-	</div><!-- /.modal-dialog -->
-</div><!-- /.modal -->
-
+    	</div>
+	</div>
+</div>
 <script>
-
 var page = 1;
 var cols = 4;
 var rows = 2;
@@ -126,47 +128,58 @@ var search_cmd = "list";
 var search_k = "st";
 var search_v = "";
 
-var _notes = [];
-var _lastNote = 0;
+function Queue() {
+    var data = [];
+
+    this.isEmpty = function() {
+        return (data.length == 0);
+    };
+
+    this.enqueue = function(obj) {
+        data.push(obj);
+    };
+
+    this.dequeue = function() {
+        return data.shift();
+    };
+
+    this.peek = function() {
+        return data[0];
+    };
+
+    this.clear = function() {
+        data = [];
+    };
+}
+
+var _notes = new Queue();
 
 var _showNote = function() {
-	var now = new Date();
-	var diff = now - _lastNote; 
-	console.log("_showNote: " + now + " " + diff + " len: " + _notes.length);
-	if( _notes.length > 0) {
-		if( diff < 1000) {
-			setTimeout(_showNote,2000);
-		}
-		else {
-			var n = _notes.shift();
-			// console.log("_showNote: new note: %s",n.text);
-			var style = 'alert-success';
-			if( "info" == n.code) {
-				style = 'alert-info';
-			}
-			if( "error" == n.code) {
-				style = 'alert-error';
-			}
-			$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+shorten(n.text,64,"...")+'</span></div>');
-			//$('#msgbox').text(n.text);
-			_lastNote = now;
-			if( _notes.length > 0) {
-				// console.log("_showNote: have more notes, setting new timeout");
-				setTimeout(_showNote,2000);
-			}
-		}
+	// get next note
+	if( _notes.isEmpty() ) {
+		return;
 	}
-}	
+	var n = _notes.dequeue();
+	var style = 'alert-success';
+	if( "info" == n.code) {
+		style = 'alert-info';
+	}
+	if( "error" == n.code) {
+		style = 'alert-error';
+	}
+	$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+shorten(n.text,64,"...")+'</span></div>');
+}
+
+setInterval ( "_showNote()", 1000 );
+
 var _note = function(code, text) {
-	// console.log("_note: " + code + " " + text);
 	if( undefined == code || undefined == text) {
 		return;
 	}
 	var n = {};
 	n.code = code;
 	n.text = text;
-	_notes.push(n);
-	_showNote();
+	_notes.enqueue(n);
 }
 
 var _rotate = function rotate(el, ang, parent) {
@@ -176,8 +189,11 @@ var _rotate = function rotate(el, ang, parent) {
 }
 
 var _save = function(path, k, v) {
+	if( undefined == path) {
+		return;
+	}
 	var url = "/?cmd=store&path=" + path + "&k=" + k + "&v="+v;
-	// console.log("saving %s for %s of %s", v, k, path);
+	console.log("saving %s for %s of %s", v, k, path);
 	$.get(url, function(response){
 		_note("info", "saved " + v + " for " + path);
 	});
@@ -198,7 +214,6 @@ var _setRotation = function setRotation(path, angle, img) {
 		  async: false,
 		  success: function(response){
 			  _note("info", "thumbnail invalidated for " + path);
-			  // console.log("save result: " + response);
 		  },
 	});	
 	var now = new Date().getTime();
@@ -233,7 +248,6 @@ var _evernote_link = function(item) {
 	bDoc.on('click', function(e) {
 		var url = "/?cmd=evernote-link&path=" + item.path;
 		$.getJSON(url, function(response){
-			// console.log("evernote-link result: %o", response);
 			_note(response.code, response.msg);
 		});
 		bDoc.removeClass("btn-primary");
@@ -245,6 +259,7 @@ var _evernote_link = function(item) {
 function showFoto(data) {
 
 	var twitterList = $( "<div class='row'/>" );
+	var tabindex = 3;
 
 	$( "#output" ).empty();
 
@@ -264,10 +279,8 @@ function showFoto(data) {
 		}
 		tr.append(td);
 
-		//var img = $("<img src='" + item.thumbnail + "' title='" + item.path + "'>");
 		var img = $("<img src='" + item.thumbnail + "'>");
 		if( 1 == cols ) {
-			//img = $("<img src='" + item.scaled_to_screen + + "' title='" + item.path + "'>");
 			img = $("<img src='" + item.scaled_to_screen + "'>");
 		}
 		td.append(img);
@@ -304,6 +317,8 @@ function showFoto(data) {
 		img.popover(po_opt);
 
 		var ip = $("<input class='form-control' />", { type:"text" })
+		ip.attr("tabindex",tabindex);
+		tabindex++;
 		if (typeof(item.note) != "undefined" && item.note.length > 0) {
 			ip.val(item.note);
 		}
@@ -485,6 +500,14 @@ $('#doc-all').on('click', function(e) {
 	  _save(f,"category", "documentary");
   });  
 });
+$('#label-all').on('change', function(e) {
+  $('#output div div').each(function(index) {
+	  var v = $(this);
+	  var f = v.data('path');
+	  var t = $('#label-all').val();
+	  _save(f,"note", t);
+  });
+});
 
 
 var _readMessageState = 1;
@@ -492,7 +515,6 @@ var _readMessageState = 1;
 function _readNextMessage() {
 	var url = "/?cmd=msg.next";
 	$.getJSON(url, function(r){
-		// console.log("_readNextMessage: " + r);
 		_note("info", r.msg);
 	});
 	if( 1 == _readMessageState) {
@@ -535,7 +557,6 @@ $('#importStart').on('click', function(e) {
 
 function setRowsCols(r, c) {
 	var first_pic = rows * cols * (page - 1);
-	// console.log("rows: %d, cols: %d page: %d first_pic: %d", rows, cols, page, first_pic);
 	rows = r;
 	cols = c;
 	page = parseInt(first_pic / rows / cols) + 1;

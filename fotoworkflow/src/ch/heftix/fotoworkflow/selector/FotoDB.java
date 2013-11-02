@@ -71,7 +71,7 @@ public class FotoDB {
 
 	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing";
 
-	private boolean excludeDocumentary = false;
+	private boolean excludeDocumentary = true;
 
 	Queue<Thumbnail> toBeCachedThumbnails = new ArrayBlockingQueue<Thumbnail>(16);
 
