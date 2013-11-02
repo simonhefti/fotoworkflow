@@ -33,6 +33,7 @@ import ch.heftix.fotoworkflow.selector.cmd.FeelLuckyCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCLCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetConfigCommand;
+import ch.heftix.fotoworkflow.selector.cmd.GetMessagesCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ImportCommand;
 import ch.heftix.fotoworkflow.selector.cmd.InvalidateThumbnailCommand;
@@ -96,6 +97,7 @@ public class FotoSelector implements Container {
 		fs.register("cfg.get", new GetConfigCommand(fs)); // get config
 
 		fs.register("msg.next", new NextMessageCommand(fs));
+		fs.register("msg.get", new GetMessagesCommand(fs));
 
 		fs.register("update-phash", new UpdatePHashCommand(fs));
 		fs.register("update-phashs", new UpdatePHashsCommand(fs));
