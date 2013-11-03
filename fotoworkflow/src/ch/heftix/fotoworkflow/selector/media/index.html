@@ -170,8 +170,8 @@ var _showNote = function() {
 	$('#msgbox').html('<div class="alert ' + style + '"><a class="close" data-dismiss="alert">&times;</a><span>'+shorten(n.text,64,"...")+'</span></div>');
 }
 
-setInterval ( "_showNote()", 600 );
-setInterval ( "_readNextMessages()", 1000 );
+setInterval ( "_showNote()", 800 );
+setInterval ( "_readNextMessages()", 1500 );
 
 var _note = function(code, text) {
 	if( undefined == code || undefined == text) {

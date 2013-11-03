@@ -17,7 +17,7 @@ public class Version {
 	public static String CURRENT_DB_VERSION = "1";
 
 	public static String getVersion() {
-		return "0.5.0";
+		return "0.5.1";
 	}
 
 	public static void main(String[] args) {

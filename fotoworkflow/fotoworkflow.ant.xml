@@ -8,10 +8,10 @@
 		<pathelement location="lib/commons-dbutils-1.5.jar" />
 		<pathelement location="lib/evernote-api-1.23.jar" />
 		<pathelement location="lib/scribe-1.3.3.jar" />
-		<pathelement location="lib/simple-5.1.5.jar" />
-		<pathelement location="lib/sqlite-jdbc-3.8.0-20130827.035027-1.jar" />
-		<pathelement location="lib/thumbnailator-0.4.6.jar" />
 		<pathelement location="lib/tika-app-1.3.jar" />
+		<pathelement location="lib/thumbnailator-0.4.6.jar" />
+		<pathelement location="lib/sqlite-jdbc-3.8.0-20130827.035027-1.jar" />
+		<pathelement location="lib/simple-5.1.5.jar" />
 	</path>
 
 	<target name="clean">
@@ -34,14 +34,14 @@
 
 	<target name="jar" depends="compile, version">
 		
-		<unzip src="lib/commons-codec-1.7.jar" dest="generated/classes" />
 		<unzip src="lib/commons-dbutils-1.5.jar" dest="generated/classes" />
+		<unzip src="lib/commons-codec-1.7.jar" dest="generated/classes" />
 		<unzip src="lib/evernote-api-1.23.jar" dest="generated/classes" />
 		<unzip src="lib/scribe-1.3.3.jar" dest="generated/classes" />
-		<unzip src="lib/simple-5.1.5.jar" dest="generated/classes" />
-		<unzip src="lib/sqlite-jdbc-3.8.0-20130827.035027-1.jar" dest="generated/classes" />
-		<unzip src="lib/thumbnailator-0.4.6.jar" dest="generated/classes" />
 		<unzip src="lib/tika-app-1.3.jar" dest="generated/classes" />
+		<unzip src="lib/thumbnailator-0.4.6.jar" dest="generated/classes" />
+		<unzip src="lib/sqlite-jdbc-3.8.0-20130827.035027-1.jar" dest="generated/classes" />
+		<unzip src="lib/simple-5.1.5.jar" dest="generated/classes" />
 		<jar jarfile="${fotoworkflow.delivery}">
 			<fileset dir="generated/classes" />
 			<manifest>

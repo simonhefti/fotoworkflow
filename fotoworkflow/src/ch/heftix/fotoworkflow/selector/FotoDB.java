@@ -69,7 +69,7 @@ public class FotoDB {
 	String pCreationDate = "@{CreationDate: yyyy-MM-dd'T'HHmm}";
 	String pModel = "@{Model}";
 
-	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing";
+	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing,stamp";
 
 	private boolean excludeDocumentary = true;
 
@@ -144,9 +144,19 @@ public class FotoDB {
 			return;
 		}
 
+		String stamp = getStamp();
+
 		QueryRunner qr = new QueryRunner();
-		String sql = "update foto set " + k + "=?" + " where path=?";
-		qr.update(conn, sql, v, path);
+		String sql = "update foto set " + k + "=?,stamp=?" + " where path=?";
+		qr.update(conn, sql, v, stamp, path);
+	}
+
+	public String getStamp() {
+		String user = System.getProperty("user.name");
+		user = UIUtil.removeSpecial(user);
+		long now = System.currentTimeMillis();
+		String stamp = String.format("%s-%d", user, now);
+		return stamp;
 	}
 
 	public boolean existsFoto(String path) throws SQLException {
@@ -220,6 +230,7 @@ public class FotoDB {
 		int h = mdh.getHeight(md);
 		String phash = Foto.defaultHash;
 		int isMissing = 0;
+		String stamp = getStamp();
 
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("insert into foto (path,mimetype,creationdate");
@@ -228,11 +239,11 @@ public class FotoDB {
 		if (null != note && note.length() > 1) {
 			sb.append(",note");
 		}
-		sb.append(", phash, isMissing)");
+		sb.append(", phash, isMissing, stamp)");
 		if (null != note && note.length() > 1) {
-			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 		} else {
-			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 		}
 		String sql = sb.toString();
 
@@ -240,10 +251,10 @@ public class FotoDB {
 
 		if (null != note && note.length() > 1) {
 			qr.update(c, sql, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model, lng, lat,
-					o, note, phash, isMissing);
+					o, note, phash, isMissing, stamp);
 		} else {
 			qr.update(c, sql, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model, lng, lat,
-					o, phash, isMissing);
+					o, phash, isMissing, stamp);
 		}
 
 	}
@@ -740,6 +751,7 @@ public class FotoDB {
 		f.note = rs.getString(13);
 		f.phash = rs.getString(14);
 		f.isMissing = rs.getInt(15);
+		f.stamp = rs.getString(16);
 		return f;
 	}
 
@@ -965,7 +977,7 @@ public class FotoDB {
 	private String getVersion() {
 
 		QueryRunner qr = new QueryRunner();
-		org.apache.commons.dbutils.ResultSetHandler<String> rsh = new org.apache.commons.dbutils.ResultSetHandler<String>() {
+		ResultSetHandler<String> rsh = new ResultSetHandler<String>() {
 			public String handle(ResultSet rs) throws SQLException {
 				if (rs.next()) {
 					return rs.getString(1);
@@ -1034,6 +1046,47 @@ public class FotoDB {
 			excludeDocumentary = false;
 		} else {
 			excludeDocumentary = true;
+		}
+	}
+
+	public void updateExif(Foto f) {
+
+		File file = new File(f.path);
+
+		ProcessBuilder b = null;
+
+		List<String> exifToolArgs = new ArrayList<String>();
+		exifToolArgs.add("/usr/bin/exiftool");
+		exifToolArgs.add("-F");
+
+		boolean hasWork = false;
+
+		if (null != f.note && f.note.length() > 1) {
+			exifToolArgs.add("-UserComment=" + f.note);
+			hasWork = true;
+		}
+		if (null != f.category && f.category.length() > 1) {
+			exifToolArgs.add("-ImageDescription=" + f.category);
+			hasWork = true;
+		}
+		exifToolArgs.add(file.getAbsolutePath());
+
+		if (hasWork) {
+			b = new ProcessBuilder(exifToolArgs);
+
+			try {
+				Process p = b.start();
+
+				InputStreamReader isr = new InputStreamReader(p.getInputStream());
+				BufferedReader br = new BufferedReader(isr);
+				String line;
+
+				while ((line = br.readLine()) != null) {
+					System.out.println(line);
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

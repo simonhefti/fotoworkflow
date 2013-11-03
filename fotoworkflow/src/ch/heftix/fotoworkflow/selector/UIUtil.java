@@ -71,6 +71,18 @@ public class UIUtil {
 		}
 		return null;
 	}
+	
+	public static String removeSpecial(final String str) {
+		if (null == str) {
+			return null;
+		}
+		String res = null;
+		res = str.replaceAll("\\s", "");
+		res = res.replaceAll("'", "");
+		res = res.replaceAll(" ", "");
+		
+		return res;
+	}
 
 	public static String stackTrace(final Throwable caught) {
 		StringBuffer sb = new StringBuffer(1024);

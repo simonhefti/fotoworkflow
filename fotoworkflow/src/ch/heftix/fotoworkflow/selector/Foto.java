@@ -29,6 +29,7 @@ public class Foto implements Payload {
 	public String phash;
 	public int isMissing = 0;
 	public double tmpKmFrom = 0;
+	public String stamp;
 
 	public static final String defaultHash = "1111111111111111";
 
