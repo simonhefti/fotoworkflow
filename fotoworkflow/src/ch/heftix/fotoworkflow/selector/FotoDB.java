@@ -27,10 +27,12 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -74,6 +76,8 @@ public class FotoDB {
 	private boolean excludeDocumentary = true;
 
 	Queue<Thumbnail> toBeCachedThumbnails = new ArrayBlockingQueue<Thumbnail>(16);
+	
+	SimpleDateFormat timestampFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
 	protected FotoDB() throws Exception {
 
@@ -152,11 +156,13 @@ public class FotoDB {
 	}
 
 	public String getStamp() {
-		String user = System.getProperty("user.name");
-		user = UIUtil.removeSpecial(user);
-		long now = System.currentTimeMillis();
-		String stamp = String.format("%s-%d", user, now);
-		return stamp;
+//		String user = System.getProperty("user.name");
+//		user = UIUtil.removeSpecial(user);
+		Date now = new Date();
+		String znow = timestampFormatter.format(now);
+//		String stamp = String.format("%s %s", znow, user);
+//		return stamp;
+		return znow;
 	}
 
 	public boolean existsFoto(String path) throws SQLException {
