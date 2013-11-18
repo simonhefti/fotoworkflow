@@ -75,8 +75,6 @@ public class FotoDB {
 
 	private boolean excludeDocumentary = true;
 
-	Queue<Thumbnail> toBeCachedThumbnails = new ArrayBlockingQueue<Thumbnail>(16);
-	
 	SimpleDateFormat timestampFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
 	protected FotoDB() throws Exception {
@@ -155,13 +153,13 @@ public class FotoDB {
 		qr.update(conn, sql, v, stamp, path);
 	}
 
-	public String getStamp() {
-//		String user = System.getProperty("user.name");
-//		user = UIUtil.removeSpecial(user);
+	public synchronized String getStamp() {
+		// String user = System.getProperty("user.name");
+		// user = UIUtil.removeSpecial(user);
 		Date now = new Date();
 		String znow = timestampFormatter.format(now);
-//		String stamp = String.format("%s %s", znow, user);
-//		return stamp;
+		// String stamp = String.format("%s %s", znow, user);
+		// return stamp;
 		return znow;
 	}
 
@@ -761,6 +759,14 @@ public class FotoDB {
 		return f;
 	}
 
+	/**
+	 * retrieve foto from
+	 * 
+	 * @param path
+	 *            primary key of foto
+	 * @return @see Foto
+	 * @throws SQLException
+	 */
 	public Foto getFoto(String path) throws SQLException {
 
 		QueryRunner qr = new QueryRunner();
@@ -774,6 +780,11 @@ public class FotoDB {
 			}
 		};
 		Foto res = qr.query(conn, "select " + fotoattrs + " from foto where path=?", rsh, path);
+
+		QueryRunner q2 = new QueryRunner();
+		String z = getStamp();
+		q2.update(conn, "update foto set viewed_last=? where path=?", z, path);
+
 		return res;
 	}
 
@@ -813,6 +824,8 @@ public class FotoDB {
 			return res;
 		}
 
+		System.out.println(String.format("D getThumbnail %s %d", f.getName(), height));
+
 		// check DB first
 		res = thumbnailExistsQR.query(conn,
 				"select path,image,height,mimetype from thumbnail where path=? and height=?", thumbnailExistsRSH,
@@ -834,6 +847,7 @@ public class FotoDB {
 				res = createThumbnail(foto, height);
 
 				if (null != res.image) {
+					System.out.println(String.format("D ... storing cache %s %d", f.getName(), height));
 					insertThumbnail(res);
 				}
 			}
@@ -842,7 +856,7 @@ public class FotoDB {
 		return res;
 	}
 
-	private synchronized Thumbnail createThumbnail(Foto f, int height) throws FileNotFoundException, IOException {
+	private Thumbnail createThumbnail(Foto f, int height) throws FileNotFoundException, IOException {
 
 		// note(":) creating thumbnail for %s", f.path);
 
@@ -889,17 +903,26 @@ public class FotoDB {
 		return res;
 	}
 
+	// private void insertThumbnail(Thumbnail t) throws SQLException {
+	// toBeCachedThumbnails.add(t);
+	// if (toBeCachedThumbnails.size() >= 8) {
+	// QueryRunner qr = new QueryRunner();
+	// while (!toBeCachedThumbnails.isEmpty()) {
+	// Thumbnail tn = toBeCachedThumbnails.remove();
+	// // note("inserting %s", tn.path);
+	// qr.update(conn,
+	// "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)",
+	// tn.path,
+	// tn.image, tn.height, tn.mimeType);
+	// }
+	// }
+	// }
+
 	private void insertThumbnail(Thumbnail t) throws SQLException {
-		toBeCachedThumbnails.add(t);
-		if (toBeCachedThumbnails.size() >= 8) {
-			QueryRunner qr = new QueryRunner();
-			while (!toBeCachedThumbnails.isEmpty()) {
-				Thumbnail tn = toBeCachedThumbnails.remove();
-				// note("inserting %s", tn.path);
-				qr.update(conn, "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)", tn.path,
-						tn.image, tn.height, tn.mimeType);
-			}
-		}
+		QueryRunner qr = new QueryRunner();
+		qr.update(conn, "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)", t.path, t.image,
+				t.height, t.mimeType);
+
 	}
 
 	private byte[] slurp(File f) throws IOException {

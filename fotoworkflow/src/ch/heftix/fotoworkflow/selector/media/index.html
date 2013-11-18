@@ -4,7 +4,6 @@
 <title>Foto Selector</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link href="css/bootstrap.min.css" rel="stylesheet">
-<link href="css/bootstrap-glyphicons.css" rel="stylesheet">
 
 <script src="js/jquery.js"></script>
 <script src="js/jsOAuth.min.js"></script>
@@ -57,7 +56,7 @@
 
 <div class="form-inline">
 	<div class="btn-group">
-		<a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
+		<a class="btn btn-primary btn-xs dropdown-toggle" data-toggle="dropdown" href="#">
 			<span class="glyphicon glyphicon-wrench"></span>
     		<span class="caret"></span>
   		</a>
@@ -71,10 +70,10 @@
 		</ul>
 	</div>
 	<input id="query" tabindex="1" type="text" class="form-control">
-	<a id="Prev1" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-step-backward"></span></a>  
-	<a id="Prev" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
-	<a id="Next" class="btn btn-primary btn-small" href="#"><span class="glyphicon glyphicon-circle-arrow-right"></span></a>
-	<a id='doc-all' class='btn btn-primary btn-small' href="#"><span class="glyphicon glyphicon-thumbs-down"></span></a>
+	<a id="Prev1" class="btn btn-primary btn-xs" href="#"><span class="glyphicon glyphicon-step-backward"></span></a>  
+	<a id="Prev" class="btn btn-primary btn-xs" href="#"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
+	<a id="Next" class="btn btn-primary btn-xs" href="#"><span class="glyphicon glyphicon-circle-arrow-right"></span></a>
+	<a id='doc-all' class='btn btn-primary btn-xs' href="#"><span class="glyphicon glyphicon-thumbs-down"></span></a>
 	<input id="label-all" tabindex="2" type="text" class="form-control">
 	<div id="msgbox" style="float: right"></div>
 </div>
@@ -123,6 +122,7 @@
 var page = 1;
 var cols = 4;
 var rows = 2;
+var width = 400;
 
 var search_cmd = "list";
 var search_k = "st";
@@ -223,7 +223,7 @@ var _setRotation = function setRotation(path, angle, img) {
 }
 
 var _qualificationButton = function(item, iconName, category) {
-	var bDoc = $("<a class='btn btn-primary btn-mini' href='#'></a>");
+	var bDoc = $("<a class='btn btn-primary btn-xs' href='#'></a>");
 	var icn = $("<span class='glyphicon glyphicon-" + iconName + "' title='" + category + "'></span>");
 	bDoc.append(icn);
 	if( category == item.category) {
@@ -239,7 +239,7 @@ var _qualificationButton = function(item, iconName, category) {
 }
 
 var _evernote_link = function(item) {
-	var bDoc = $("<a class='btn btn-primary btn-mini' href='#'></a>");
+	var bDoc = $("<a class='btn btn-primary btn-xs' href='#'></a>");
 	var icn = $("<span class='glyphicon glyphicon-magnet' title='Evernote Sync'></span>");
 	bDoc.append(icn);
 	if( undefined != item.noteId && item.noteId.length > 1) {
@@ -286,6 +286,9 @@ function showFoto(data) {
 		}
 		td.append(img);
 
+		// add click listener to this image for detail popup
+
+
 		var det_div = $( "<div />" );
 		det_div.append("Date: ");
 		det_div.append(item.creationdate);
@@ -304,7 +307,8 @@ function showFoto(data) {
 		det_div.append(item.noteId);
 		det_div.append("<br />");
 
-		var d_i = $("<img src='" + item.w600 + "'>");
+		// var d_i = $("<img src='" + item.w600 + "'>");
+		var d_i = $("<img src='" + item.thumbnail + "'>");
 		det_div.append(d_i);
 
 		var po_opt = {};
@@ -332,19 +336,19 @@ function showFoto(data) {
 		var commands = $("<p />");
 		td.append(commands);
 		
-		var b090 = $("<button class='btn btn-info btn-mini' type='button'>R</button>");
+		var b090 = $("<button class='btn btn-info btn-xs' type='button'>R</button>");
 		b090.on('click', function(e) {
 			_setRotation(item.path, "90 CW", img);
 		});
 		commands.append(b090);
 		
-		var b270 = $("<button class='btn btn-info btn-mini' type='button'>L</button>");
+		var b270 = $("<button class='btn btn-info btn-xs' type='button'>L</button>");
 		b270.on('click', function(e) {
 			_setRotation(item.path, "270 CW", img);
 		});
 		commands.append(b270);
 		
-		var bNone = $("<button class='btn btn-info btn-mini' type='button'>NR</button>");
+		var bNone = $("<button class='btn btn-info btn-xs' type='button'>NR</button>");
 		bNone.on('click', function(e) {
 			_rotate(img,"0deg", img);
 			_save(item.path,"orientation", "rotation reset");
@@ -370,7 +374,7 @@ function showFoto(data) {
 		commands.append(bDoc);
 		
 		// similar
-		var bSim = $("<button class='btn btn-info btn-mini' type='button'>Sim</button>");
+		var bSim = $("<button class='btn btn-info btn-xs' type='button'>Sim</button>");
 		bSim.on('click', function(e) {
 			search_cmd = "similar";
 			search_k = "path";
@@ -381,7 +385,7 @@ function showFoto(data) {
 		commands.append(bSim);
 		
 		// close date
-		var bCD = $("<button class='btn btn-info btn-mini' type='button'>Date</button>");
+		var bCD = $("<button class='btn btn-info btn-xs' type='button'>Date</button>");
 		bCD.on('click', function(e) {
 			search_cmd = "closedate";
 			search_k = "path";
@@ -392,7 +396,7 @@ function showFoto(data) {
 		commands.append(bCD);
 
 		// close location
-		var bCL = $("<button class='btn btn-info btn-mini' type='button'>Loc</button>");
+		var bCL = $("<button class='btn btn-info btn-xs' type='button'>Loc</button>");
 		bCL.on('click', function(e) {
 			search_cmd = "closeloc";
 			search_k = "path";
@@ -413,6 +417,9 @@ var searchFoto = function searchFoto() {
 	console.log("search: url: " + url);
 	$.getJSON(url,function(data){
 		showFoto(data);
+	 //  	_note("info", "now pre-caching");
+		// var u2 = "/?cmd=thumbnail.precache&" + search_k + "=" + search_v + "&p="+page+"&n="+n;
+		// $.getJSON(u2);
 	});
 };
 
@@ -566,6 +573,11 @@ function setRowsCols(r, c) {
 	rows = r;
 	cols = c;
 	page = parseInt(first_pic / rows / cols) + 1;
+	if( rows == 1) {
+		witdh = 800;
+	} else {
+		width = 400;
+	}
 	searchFoto();
 }
 

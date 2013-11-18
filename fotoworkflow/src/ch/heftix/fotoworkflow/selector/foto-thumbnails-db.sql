@@ -38,7 +38,9 @@ create virtual table foto using fts4 (
   note text, -- a description of the image
   phash text, -- for similarity detection
   isMissing int, -- flag
-  stamp text -- optimistic locking
+  stamp text, -- optimistic locking
+  viewed_last text, -- for cache management
+  viewed_count int
 );
 
 -- distance between fotos

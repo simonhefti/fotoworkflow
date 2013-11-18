@@ -38,6 +38,7 @@ import ch.heftix.fotoworkflow.selector.cmd.GetThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ImportCommand;
 import ch.heftix.fotoworkflow.selector.cmd.InvalidateThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.NextMessageCommand;
+import ch.heftix.fotoworkflow.selector.cmd.NextThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.PingCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseDateFotoCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseLocationFotoCommand;
@@ -103,6 +104,7 @@ public class FotoSelector implements Container {
 		fs.register("update-phashs", new UpdatePHashsCommand(fs));
 
 		fs.register("exclude-documentary", new ExcludeDocumentaryCommand(fs));
+		fs.register("thumbnail.precache", new NextThumbnailCommand(fs));
 
 		connection.connect(address);
 
