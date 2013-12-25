@@ -10,8 +10,6 @@
  */
 package ch.heftix.fotoworkflow.selector.evernote;
 
-import java.util.List;
-
 import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
@@ -20,9 +18,6 @@ import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
-
-import com.evernote.edam.notestore.NoteStore;
-import com.evernote.edam.type.Notebook;
 
 public class EvernoteVerifyCommand implements WebCommand {
 
@@ -47,15 +42,17 @@ public class EvernoteVerifyCommand implements WebCommand {
 
 			// fs.oAuthState.setAccessToken(accessToken);
 			fs.setConf("evernote.accestoken", accessToken.getToken());
-			
+
 			response.setValue("Location", "/");
 			response.setCode(302);
 
-//			NoteStore.Client noteStore = fs.oAuthState.getNoteStore(accessToken.getToken());
-//			List<Notebook> notebooks = noteStore.listNotebooks(accessToken.getToken());
-//			for (Notebook notebook : notebooks) {
-//				System.out.println(notebook.getName());
-//			}
+			// NoteStore.Client noteStore =
+			// fs.oAuthState.getNoteStore(accessToken.getToken());
+			// List<Notebook> notebooks =
+			// noteStore.listNotebooks(accessToken.getToken());
+			// for (Notebook notebook : notebooks) {
+			// System.out.println(notebook.getName());
+			// }
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

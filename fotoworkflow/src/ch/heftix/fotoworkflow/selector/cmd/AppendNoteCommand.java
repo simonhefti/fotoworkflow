@@ -10,37 +10,28 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.simpleframework.http.Query;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
-import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
 
 /**
- * update a DB entry for a given foto
+ * update note for a given foto
  */
-public class GetConfigCommand extends BaseWebCommand {
+public class AppendNoteCommand extends BaseWebCommand {
 
-	public GetConfigCommand(FotoSelector fs) throws Exception {
+	public AppendNoteCommand(FotoSelector fs) {
 		super(fs);
 	}
 
 	public void process(Query q, JsonResponse jr) throws Exception {
 
-		StringBufferPayload pl = new StringBufferPayload();
-		String k = q.get("k");
-		List<String> allowedKeys = Arrays.asList("importPattern");
-		if (allowedKeys.contains(k)) {
-			String t = String.format("{\"%s\": \"%s\"}", k, fs.getConf(k));
-			pl.append(t);
+			String path = q.get("path");
+			String v = q.get("v");
+
+			fs.appendNote(path, v);
+			
 			jr.code = "ok";
-		} else {
-			jr.code = "error";
-			jr.msg = "key may not be queried";
-		}
-		jr.payload = pl;
+			jr.msg = String.format("updated '%s' for %s", v, path);
 	}
 }

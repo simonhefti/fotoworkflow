@@ -28,11 +28,13 @@ import org.simpleframework.transport.Server;
 import org.simpleframework.transport.connect.Connection;
 import org.simpleframework.transport.connect.SocketConnection;
 
+import ch.heftix.fotoworkflow.selector.cmd.AppendNoteCommand;
+import ch.heftix.fotoworkflow.selector.cmd.ConfigGetCommand;
+import ch.heftix.fotoworkflow.selector.cmd.ConfigSetCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ExcludeDocumentaryCommand;
 import ch.heftix.fotoworkflow.selector.cmd.FeelLuckyCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCLCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCommand;
-import ch.heftix.fotoworkflow.selector.cmd.GetConfigCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetMessagesCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ImportCommand;
@@ -86,6 +88,7 @@ public class FotoSelector implements Container {
 		fs.register("import", new ImportCommand(fs)); // import
 
 		fs.register("store", new UpdateCommand(fs)); // save attribute
+		fs.register("note.append", new AppendNoteCommand(fs)); // append note
 
 		fs.register("evernote-oauth", new OAuthCommand(fs));
 		fs.register("evernote-verify", new EvernoteVerifyCommand(fs));
@@ -95,7 +98,8 @@ public class FotoSelector implements Container {
 
 		fs.register("ping", new PingCommand(fs)); // verify app alive
 
-		fs.register("cfg.get", new GetConfigCommand(fs)); // get config
+		fs.register("cfg.get", new ConfigGetCommand(fs)); // get config
+		fs.register("cfg.set", new ConfigSetCommand(fs));
 
 		fs.register("msg.next", new NextMessageCommand(fs));
 		fs.register("msg.get", new GetMessagesCommand(fs));
@@ -168,6 +172,15 @@ public class FotoSelector implements Container {
 		}
 	}
 
+	public void appendNote(String path, String v) {
+		try {
+			db.appendNote(path, v);
+		} catch (SQLException e) {
+			String msg = String.format("Cannot update note. Path: %s. Note: %s. Reason: %s", path, v, e);
+			message(msg);
+		}
+	}
+
 	public FotoDB getDB() {
 		return this.db;
 	}
@@ -179,7 +192,16 @@ public class FotoSelector implements Container {
 	}
 
 	public void toggleExcludeDocumentary() {
-		db.toggleExcludeDocumentary();
+		boolean ex = db.toggleExcludeDocumentary();
+		if (ex) {
+			queue.add("category documentary now excluded by default");
+		} else {
+			queue.add("category documentary included by default");
+		}
+	}
+
+	public synchronized void message(String msg) {
+		queue.add(msg);
 	}
 
 }

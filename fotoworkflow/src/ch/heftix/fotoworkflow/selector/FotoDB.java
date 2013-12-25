@@ -34,8 +34,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -150,6 +148,54 @@ public class FotoDB {
 
 		QueryRunner qr = new QueryRunner();
 		String sql = "update foto set " + k + "=?,stamp=?" + " where path=?";
+		qr.update(conn, sql, v, stamp, path);
+	}
+
+	private String getInfo(String path, String key) throws SQLException {
+
+		if (null == path || null == key) {
+			return null;
+		}
+
+		QueryRunner qr = new QueryRunner();
+		String sql = String.format("select %s from foto where path=?", key);
+		ResultSetHandler<String> rsh = new ResultSetHandler<String>() {
+			public String handle(ResultSet rs) throws SQLException {
+				if (rs.next()) {
+					return rs.getString(1);
+				}
+				return null;
+			}
+		};
+		String res = qr.query(conn, sql, rsh, path);
+		return res;
+	}
+
+	public String getNote(String path) throws SQLException {
+		return getInfo(path, "note");
+	}
+
+	public void appendNote(String path, String v) throws SQLException {
+
+		if (null == path || null == v) {
+			return;
+		}
+
+		if (v.length() < 1) {
+			return;
+		}
+
+		String stamp = getStamp();
+
+		String note = getNote(path);
+		if (null == note) {
+			note = v;
+		} else {
+			note = String.format("%s, %s", note, v);
+		}
+
+		QueryRunner qr = new QueryRunner();
+		String sql = "update foto set note=?,stamp=?" + " where path=?";
 		qr.update(conn, sql, v, stamp, path);
 	}
 
@@ -1070,12 +1116,13 @@ public class FotoDB {
 		excludeDocumentary = val;
 	}
 
-	public void toggleExcludeDocumentary() {
+	public boolean toggleExcludeDocumentary() {
 		if (excludeDocumentary) {
 			excludeDocumentary = false;
 		} else {
 			excludeDocumentary = true;
 		}
+		return excludeDocumentary;
 	}
 
 	public void updateExif(Foto f) {

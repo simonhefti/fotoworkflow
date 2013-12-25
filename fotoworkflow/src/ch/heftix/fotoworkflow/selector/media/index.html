@@ -63,6 +63,7 @@
   		<ul class="dropdown-menu">
     		<li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
 	    	<li><a id="menuImport" href="#"> Import Photos</a></li>
+	    	<li><a id="menuCustomNote" href="#"> Custom Note</a></li>
 	    	<li><a id="grid2_4" href="#"> 4 &times; 2</a></li>
 	    	<li><a id="grid1_1" href="#"> 1 &times; 1</a></li>
 	    	<li><a id="exclude_documentary" href="#"> Toggle exclude documentary</a></li>
@@ -80,7 +81,7 @@
 
 <div id="output" ></div>
 
-<div id="modalImport" class="modal fade" id="myModal">
+<div id="modalImport" class="modal fade">
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<div class="modal-header">
@@ -118,6 +119,26 @@
     	</div>
 	</div>
 </div>
+
+<div id="modalCustomNote" class="modal fade">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+				<h4 class="modal-title">Custom note</h4>
+        	</div>
+        	<div class="modal-body">
+				<form class="form-horizontal">
+	      					<input type="text" id="customNote" class="form-control" placeholder="your custom note (will be used on button c)">
+				</form>
+	        </div>
+    	    <div class="modal-footer">
+        		<a id="setCustomNote" href="#" class="btn btn-primary">Set</a>
+        	</div>
+    	</div>
+	</div>
+</div>
+
 <script>
 var page = 1;
 var cols = 4;
@@ -200,12 +221,30 @@ var _save = function(path, k, v) {
 	});
 }
 
+var _appendnote = function(path, v) {
+	if( undefined == path) {
+		return;
+	}
+	var url = "/?cmd=note.append&path=" + path + "&v="+v;
+	$.get(url, function(response){
+		_note("info", "note saved for " + path);
+	});
+}
+
 var _readImportPattern = function() {
 	var url = "/?cmd=cfg.get&k=importPattern";
 	$.getJSON(url, function(r){
 		$("#importPattern").val(r.payload.importPattern);
 	});
 }
+
+var _readCustomNote = function() {
+	var url = "/?cmd=cfg.get&k=customNote";
+	$.getJSON(url, function(r){
+		$("#customNote").val(r.payload.customNote);
+	});
+}
+
 var _setRotation = function setRotation(path, angle, img) {
 	_save(path, "orientation", angle);
 	var url = "/?cmd=invalidate_thumbnail&path=" + path;
@@ -234,6 +273,14 @@ var _qualificationButton = function(item, iconName, category) {
 		_save(item.path,"category", category);
 		bDoc.removeClass("btn-primary");
 		bDoc.addClass("btn-default");
+	});
+	return bDoc;
+}
+
+var _customNoteButton = function(item) {
+	var bDoc = $("<a class='btn btn-primary btn-xs' href='#'>c</a>");
+	bDoc.on('click', function(e) {
+		_appendnote(item.path, $('#icustomNote').val());
 	});
 	return bDoc;
 }
@@ -373,6 +420,9 @@ function showFoto(data) {
 		var bDoc = _evernote_link(item);
 		commands.append(bDoc);
 		
+		var bDoc = _customNoteButton(item);
+		commands.append(bDoc);
+
 		// similar
 		var bSim = $("<button class='btn btn-info btn-xs' type='button'>Sim</button>");
 		bSim.on('click', function(e) {
@@ -533,9 +583,9 @@ function _readNextMessages() {
 	var url = "/?cmd=msg.get";
 	$.getJSON(url, function(data) {
 		$.each( data.payload, function( index, item ) {
-			console.log("nxt msg: " + item);
+			console.log("nxt msg: " + item.msg);
 			if( undefined != item && "null" != item) {
-				_note("info", item);
+				_note("info", item.msg);
 			}
 		});
   });
@@ -552,6 +602,10 @@ $('#menuImport').on('click', function(e) {
 	$('#modalImport').modal();
 });
 
+$('#menuCustomNote').on('click', function(e) {
+	$('#modalCustomNote').modal();
+});
+
 function updatePHashs() {
 	var url = "/?cmd=update-phashs";
 	$.getJSON(url, function(r){
@@ -565,6 +619,14 @@ $('#importStart').on('click', function(e) {
 	$.getJSON(url, function(r){
 		_note(r.code, r.msg);
 		updatePHashs();
+	});
+});
+
+$('#setCustomNote').on('click', function(e) {
+	var url = "/?cmd=cfg.set&k=customNote&v=" + $('#customNote').val();
+	$('#modalCustomNote').modal('hide');
+	$.getJSON(url, function(r){
+		_note(r.code, r.msg);
 	});
 });
 
@@ -623,7 +685,8 @@ $( document ).ready( function() {
 	search_k = "st";
 	search_v = $('#query').val();
 	searchFoto();
-	_readImportPattern();	
+	_readImportPattern();
+	_readCustomNote();
 } );
 </script>
 
