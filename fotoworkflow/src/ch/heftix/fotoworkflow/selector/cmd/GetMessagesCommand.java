@@ -29,25 +29,25 @@ public class GetMessagesCommand extends BaseWebCommand {
 
 		StringBufferPayload pl = new StringBufferPayload();
 
-		pl.append("[");
-
-		int cnt = 0;
-
-		while (!fs.queue.isEmpty() && cnt < 10) {
-
-			String msg = fs.queue.poll();
-
-			if (null != msg) {
-				pl.append("{");
-				pl.append("\"msg\": \"" + msg + "\"");
-				pl.append("}");
-				cnt++;
-			}
-		}
-
-		pl.append("]");
+//		pl.append("[");
+//
+//		int cnt = 0;
+//
+//		while (!fs.queue.isEmpty() && cnt < 10) {
+//
+//			String msg = fs.queue.poll();
+//
+//			if (null != msg) {
+//				pl.append("{");
+//				pl.append("\"msg\": \"" + msg + "\"");
+//				pl.append("}");
+//				cnt++;
+//			}
+//		}
+//
+//		pl.append("]");
 
 		jr.code = "ok";
-		jr.payload = pl;
+//		jr.payload = pl;
 	}
 }

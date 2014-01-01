@@ -62,6 +62,7 @@
   		</a>
   		<ul class="dropdown-menu">
     		<li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
+    		<li><a href="?cmd=drive.oauth"><i class="icon-ok-circle"></i> Authorize with Google Drive</a></li>
 	    	<li><a id="menuImport" href="#"> Import Photos</a></li>
 	    	<li><a id="menuCustomNote" href="#"> Custom Note</a></li>
 	    	<li><a id="grid2_4" href="#"> 4 &times; 2</a></li>
@@ -280,7 +281,7 @@ var _qualificationButton = function(item, iconName, category) {
 var _customNoteButton = function(item) {
 	var bDoc = $("<a class='btn btn-primary btn-xs' href='#'>c</a>");
 	bDoc.on('click', function(e) {
-		_appendnote(item.path, $('#icustomNote').val());
+		_appendnote(item.path, $('#customNote').val());
 	});
 	return bDoc;
 }
@@ -580,7 +581,7 @@ $('#label-all').on('change', function(e) {
 
 
 function _readNextMessages() {
-	var url = "/?cmd=msg.get";
+	var url = "/?cmd=msg.next";
 	$.getJSON(url, function(data) {
 		$.each( data.payload, function( index, item ) {
 			console.log("nxt msg: " + item.msg);

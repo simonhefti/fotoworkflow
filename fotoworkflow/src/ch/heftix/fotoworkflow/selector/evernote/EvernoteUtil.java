@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2014 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -54,13 +54,6 @@ public class EvernoteUtil {
 
 			oAuthService = new ServiceBuilder().provider(EvernoteApi.class).apiKey(consumerKey)
 					.apiSecret(consumerSecret).callback("http://localhost:1994?cmd=evernote-verify").build();
-
-			// oAuthService = new
-			// ServiceBuilder().provider(EvernoteApi.class).apiKey(consumerKey)
-			// .apiSecret(consumerSecret).callback("http://localhost:1994?cmd=evernote-verify").debug().build();
-			// oAuthService = new
-			// ServiceBuilder().provider(ScribeEvernoteApi.class).apiKey(consumerKey)
-			// .apiSecret(consumerSecret).callback("http://localhost:1994?cmd=evernote-verify").debug().build();
 		}
 
 		return oAuthService;

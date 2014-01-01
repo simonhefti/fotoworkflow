@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2014 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -8,7 +8,7 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector.evernote;
+package ch.heftix.fotoworkflow.selector.drive;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -35,13 +35,13 @@ import com.evernote.edam.type.Notebook;
 import com.evernote.edam.type.Resource;
 import com.evernote.edam.type.ResourceAttributes;
 
-public class EvernoteLinkCommand implements WebCommand {
+public class DriveLinkCommand implements WebCommand {
 
 	FotoSelector fs = null;
 	Notebook noteBook = null;
 	private DateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HHmm");
 
-	public EvernoteLinkCommand(FotoSelector fs) {
+	public DriveLinkCommand(FotoSelector fs) {
 		this.fs = fs;
 	}
 

@@ -31,7 +31,7 @@ public class NextMessageCommand extends BaseWebCommand {
 
 		pl.append("[");
 
-		String msg = fs.queue.poll();
+		String msg = fs.nextMessage();
 
 		if (null != msg) {
 			pl.append("{");

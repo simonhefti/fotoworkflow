@@ -110,8 +110,9 @@ public class FotoImport {
 				} else {
 					db.insertFoto(nf, note);
 				}
-				fs.queue.add("imported " + nf.getName());
+				fs.message("imported " + nf.getName());
 			} catch (IOException e) {
+				fs.message("cannot import: %s", e);
 				e.printStackTrace();
 			}
 		}

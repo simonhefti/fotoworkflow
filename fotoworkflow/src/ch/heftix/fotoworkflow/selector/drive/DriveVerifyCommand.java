@@ -8,9 +8,10 @@
  * 
  * Initial Developer: Simon Hefti
  */
-package ch.heftix.fotoworkflow.selector.evernote;
+package ch.heftix.fotoworkflow.selector.drive;
 
 import org.scribe.model.Token;
+import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
@@ -18,11 +19,11 @@ import org.simpleframework.http.Response;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
 
-public class OAuthCommand implements WebCommand {
+public class DriveVerifyCommand implements WebCommand {
 
 	FotoSelector fs = null;
 
-	public OAuthCommand(FotoSelector fs) {
+	public DriveVerifyCommand(FotoSelector fs) {
 		this.fs = fs;
 	}
 
@@ -30,17 +31,23 @@ public class OAuthCommand implements WebCommand {
 
 		try {
 
-			OAuthService service = fs.oAuthState.getOAuthService();
-			Token requestToken = service.getRequestToken();
-			fs.oAuthState.setRequestToken(requestToken);
-			String authUrl = service.getAuthorizationUrl(requestToken);
+			OAuthService service = fs.driveState.getOAuthService();
+			String zv = request.getParameter("oauth_verifier");
+			System.out.println("* auth verifier: " + zv);
 
-			// System.out.println("* auth URL: " + authUrl);
+			Verifier v = new Verifier(zv);
+			Token accessToken = service.getAccessToken(fs.driveState.getRequestToken(), v);
 
-			response.setValue("Location", authUrl);
+			System.out.println("* accessToken: " + accessToken.getToken());
+
+			// fs.oAuthState.setAccessToken(accessToken);
+			fs.setConf("drive.accestoken", accessToken.getToken());
+
+			response.setValue("Location", "/");
 			response.setCode(302);
 
 		} catch (Exception e) {
+			fs.message("cannot verify Google Drive authorization: %s", e);
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

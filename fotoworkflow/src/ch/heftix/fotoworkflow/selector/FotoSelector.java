@@ -50,17 +50,21 @@ import ch.heftix.fotoworkflow.selector.cmd.UpdateCommand;
 import ch.heftix.fotoworkflow.selector.cmd.UpdatePHashCommand;
 import ch.heftix.fotoworkflow.selector.cmd.UpdatePHashsCommand;
 import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
+import ch.heftix.fotoworkflow.selector.drive.DriveOAuthCommand;
+import ch.heftix.fotoworkflow.selector.drive.DriveUtil;
+import ch.heftix.fotoworkflow.selector.drive.DriveVerifyCommand;
 import ch.heftix.fotoworkflow.selector.evernote.EvernoteLinkCommand;
 import ch.heftix.fotoworkflow.selector.evernote.EvernoteUtil;
 import ch.heftix.fotoworkflow.selector.evernote.EvernoteVerifyCommand;
-import ch.heftix.fotoworkflow.selector.evernote.OAuthCommand;
+import ch.heftix.fotoworkflow.selector.evernote.EvernoteOAuthCommand;
 
-public class FotoSelector implements Container {
+public class FotoSelector implements Container, IMessageSink {
 
 	private Map<String, WebCommand> commands = new HashMap<String, WebCommand>();
 	private FotoDB db = null;
-	public EvernoteUtil oAuthState = new EvernoteUtil();
-	public Queue<String> queue = new ConcurrentLinkedQueue<String>();
+	public EvernoteUtil evernoteState = new EvernoteUtil();
+	public DriveUtil driveState = new DriveUtil();
+	private Queue<String> queue = new ConcurrentLinkedQueue<String>();
 
 	public FotoSelector() throws Exception {
 		db = new FotoDB();
@@ -90,9 +94,13 @@ public class FotoSelector implements Container {
 		fs.register("store", new UpdateCommand(fs)); // save attribute
 		fs.register("note.append", new AppendNoteCommand(fs)); // append note
 
-		fs.register("evernote-oauth", new OAuthCommand(fs));
+		fs.register("evernote-oauth", new EvernoteOAuthCommand(fs));
 		fs.register("evernote-verify", new EvernoteVerifyCommand(fs));
 		fs.register("evernote-link", new EvernoteLinkCommand(fs));
+
+		fs.register("drive.oauth", new DriveOAuthCommand(fs));
+		fs.register("drive.verify", new DriveVerifyCommand(fs));
+		// fs.register("evernote-link", new EvernoteLinkCommand(fs));
 
 		fs.register("invalidate_thumbnail", new InvalidateThumbnailCommand(fs));
 
@@ -102,7 +110,7 @@ public class FotoSelector implements Container {
 		fs.register("cfg.set", new ConfigSetCommand(fs));
 
 		fs.register("msg.next", new NextMessageCommand(fs));
-		fs.register("msg.get", new GetMessagesCommand(fs));
+		// fs.register("msg.get", new GetMessagesCommand(fs));
 
 		fs.register("update-phash", new UpdatePHashCommand(fs));
 		fs.register("update-phashs", new UpdatePHashsCommand(fs));
@@ -204,4 +212,12 @@ public class FotoSelector implements Container {
 		queue.add(msg);
 	}
 
+	public synchronized void message(String fmt, Object... args) {
+		String msg = String.format(fmt, args);
+		queue.add(msg);
+	}
+
+	public String nextMessage() {
+		return queue.poll();
+	}
 }

@@ -11,7 +11,6 @@
 package ch.heftix.fotoworkflow.selector.evernote;
 
 import org.scribe.model.Token;
-import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
@@ -19,11 +18,11 @@ import org.simpleframework.http.Response;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
 
-public class EvernoteVerifyCommand implements WebCommand {
+public class EvernoteOAuthCommand implements WebCommand {
 
 	FotoSelector fs = null;
 
-	public EvernoteVerifyCommand(FotoSelector fs) {
+	public EvernoteOAuthCommand(FotoSelector fs) {
 		this.fs = fs;
 	}
 
@@ -32,23 +31,19 @@ public class EvernoteVerifyCommand implements WebCommand {
 		try {
 
 			OAuthService service = fs.evernoteState.getOAuthService();
-			String zv = request.getParameter("oauth_verifier");
-			// System.out.println("* auth verifier: " + zv);
+			Token requestToken = service.getRequestToken();
+			fs.evernoteState.setRequestToken(requestToken);
+			String authUrl = service.getAuthorizationUrl(requestToken);
 
-			Verifier v = new Verifier(zv);
-			Token accessToken = service.getAccessToken(fs.evernoteState.getRequestToken(), v);
+			// System.out.println("* auth URL: " + authUrl);
 
-			// System.out.println("* accessToken: " + accessToken.getToken());
-
-			// fs.oAuthState.setAccessToken(accessToken);
-			fs.setConf("evernote.accestoken", accessToken.getToken());
-
-			response.setValue("Location", "/");
+			response.setValue("Location", authUrl);
 			response.setCode(302);
 
 		} catch (Exception e) {
-			fs.message("cannot verify Evernote authorization: %s", e);
-			e.printStackTrace(); // TODO
+			fs.message("cannot authorize with Evernote: %s", e);
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 

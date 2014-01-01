@@ -196,7 +196,7 @@ public class FotoDB {
 
 		QueryRunner qr = new QueryRunner();
 		String sql = "update foto set note=?,stamp=?" + " where path=?";
-		qr.update(conn, sql, v, stamp, path);
+		qr.update(conn, sql, note, stamp, path);
 	}
 
 	public synchronized String getStamp() {
