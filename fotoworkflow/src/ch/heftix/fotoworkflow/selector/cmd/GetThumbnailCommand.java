@@ -40,7 +40,7 @@ public class GetThumbnailCommand implements WebCommand {
 			Query q = request.getQuery();
 			String path = (String) q.get("path");
 			String width = (String) q.get("w");
-			int w = 300;
+			int w = 280;
 			
 			if (null == path) {
 				return;

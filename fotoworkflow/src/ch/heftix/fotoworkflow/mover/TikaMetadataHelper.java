@@ -63,7 +63,7 @@ public class TikaMetadataHelper {
 			String pre = fn.substring(0, pos);
 			if (uid.length() > 16) {
 				String ext = getExtension(fn);
-				int nbr = (int)(99999 * Math.random());
+				int nbr = (int) (99999 * Math.random());
 				res = String.format("%s_%d.%s", pre, nbr, ext);
 			}
 		}
@@ -281,22 +281,34 @@ public class TikaMetadataHelper {
 			System.out.println("k: '" + name + "' -> '" + metadata.get(name) + "'");
 		}
 	}
+	
+	/** format according to pattern */
+	public String formatString(File f) throws IOException {
+		Metadata metadata = readMetadata(f);
+		FormatResult res = format(f, metadata, mfps);
+		return res.res;
+	}
+	
 
 	/** format according to pattern */
-	public String format(File f) throws IOException {
-		return format(f, mfps);
+	public FormatResult format(File f) throws IOException {
+		Metadata metadata = readMetadata(f);
+		FormatResult res = format(f, metadata, mfps);
+		return res;
 	}
 
 	/** format according to pattern */
 	public String format(File f, Metadata metadata) throws IOException {
-		return format(f, metadata, mfps);
+		FormatResult res = format(f, metadata, mfps);
+		return res.res;
 	}
 
 	/** format according to pattern */
 	public String format(File f, MetadataFormatPattern[] ps) throws IOException {
 
 		Metadata metadata = readMetadata(f);
-		return format(f, metadata, ps);
+		FormatResult res = format(f, metadata, ps);
+		return res.res;
 	}
 
 	/** format according to pattern */
@@ -304,13 +316,15 @@ public class TikaMetadataHelper {
 
 		MetadataFormatPattern p[] = parsePattern(pattern);
 		File f = new File(fn);
-		return format(f, metadata, p);
+		FormatResult res = format(f, metadata, p);
+		return res.res;
 	}
 
 	/** format according to pattern */
 	public String format(File f, Metadata metadata, String pattern) throws IOException {
 		MetadataFormatPattern p[] = parsePattern(pattern);
-		return format(f, metadata, p);
+		FormatResult res = format(f, metadata, p);
+		return res.res;
 	}
 
 	/**
@@ -325,13 +339,17 @@ public class TikaMetadataHelper {
 	 * @return formatted file name, or null if SkipExisting is true and
 	 *         destination exists
 	 */
-	public String format(File f, Metadata metadata, MetadataFormatPattern[] ps) throws IOException {
+	public FormatResult format(File f, Metadata metadata, MetadataFormatPattern[] ps) throws IOException {
 
-		String res = "";
+		FormatResult res = new FormatResult();
 		StringBuffer sb = new StringBuffer(1024);
+
+		res.srcFn = f.getAbsolutePath();
+		res.actionCode = FormatResult.A_MOVE;
 
 		boolean checkUnique = false;
 		boolean skipExisting = false;
+		boolean deleteExisting = false;
 
 		for (MetadataFormatPattern p : ps) {
 			if (null == p.tagName || p.tagName.length() < 1) {
@@ -357,6 +375,8 @@ public class TikaMetadataHelper {
 				sb.append(v);
 			} else if ("SkipExisting".equals(p.tagName)) {
 				skipExisting = true;
+			} else if ("DeleteExisting".equals(p.tagName)) {
+				deleteExisting = true;
 			} else if ("Unique".equals(p.tagName)) {
 				sb.append("_Unique_");
 				checkUnique = true;
@@ -415,15 +435,30 @@ public class TikaMetadataHelper {
 			}
 		}
 
-		res = sb.toString();
+		String destFn = sb.toString();
+
+		destFn = fixHashedFilename(destFn);
+		destFn = fixFilenameRepetition(destFn);
+
+		res.res = destFn;
+		if (null == res.res) {
+			res.actionCode = FormatResult.A_UNDEFINED;
+			return res;
+		}
 		
-		res = fixHashedFilename(res);
-		res = fixFilenameRepetition(res);
+		File destF = new File(destFn);
+
+		if (deleteExisting) {
+			if (destF.exists()) {
+				res.actionCode = FormatResult.A_DELETE;
+				return res;
+			}
+		}
 
 		if (skipExisting) {
-			File t1 = new File(res);
-			if (t1.exists()) {
-				return null; // signal skip
+			if (destF.exists()) {
+				res.actionCode = FormatResult.A_SKIP;
+				return res;
 			}
 		}
 
@@ -431,20 +466,19 @@ public class TikaMetadataHelper {
 
 			int cnt = 10;
 
-			String r1 = res.replaceFirst("_Unique_", "");
+			String r1 = destFn.replaceFirst("_Unique_", "");
 			File t1 = new File(r1);
 
 			if (!t1.exists()) {
-				res = r1;
+				destFn = r1;
 			} else {
 				while (t1.exists()) {
-					r1 = res.replaceFirst("_Unique_", Integer.toString(cnt));
+					r1 = destFn.replaceFirst("_Unique_", Integer.toString(cnt));
 					t1 = new File(r1);
 				}
-				res = r1;
+				res.res = r1;
 			}
 		}
-
 
 		return res;
 	}

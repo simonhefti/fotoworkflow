@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.tika.metadata.Metadata;
 
+import ch.heftix.fotoworkflow.mover.FormatResult;
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
 
 public class FotoImport {
@@ -84,12 +85,20 @@ public class FotoImport {
 		// }
 
 		// System.out.println(file.getAbsolutePath());
-
-		String newName = mdh.format(file);
-		if (null == newName) {
+		
+		FormatResult fr = mdh.format(file);
+		if (fr.doSkip()) {
 			note("  skipping %s", file.getAbsolutePath());
 			return;
 		}
+
+		if (fr.doDelete()) {
+			note("  exists, deleting source %s", file.getAbsolutePath());
+			file.delete();
+			return;
+		}
+		
+		String newName = fr.getResult();
 
 		if (dryRun) {
 			note("would move %s to %s", file.getAbsolutePath(), newName);

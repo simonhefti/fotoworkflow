@@ -359,11 +359,11 @@ public class FotoDB {
 		int w = mdh.getWidth(md);
 		int h = mdh.getHeight(md);
 		String phash = Foto.defaultHash;
-		int year = Integer.parseInt(mdh.format(f, md, "@{CreationDate: yyyy}"));
-		int month = Integer.parseInt(mdh.format(f, md, "@{CreationDate: MM}"));
-		int day = Integer.parseInt(mdh.format(f, md, "@{CreationDate: dd}"));
-		int hour = Integer.parseInt(mdh.format(f, md, "@{CreationDate: HH}"));
-		int minute = Integer.parseInt(mdh.format(f, md, "@{CreationDate: mm}"));
+		int year = getIntFromDateString(mdh.format(f, md, "@{CreationDate: yyyy}"));
+		int month = getIntFromDateString(mdh.format(f, md, "@{CreationDate: MM}"));
+		int day = getIntFromDateString(mdh.format(f, md, "@{CreationDate: dd}"));
+		int hour = getIntFromDateString(mdh.format(f, md, "@{CreationDate: HH}"));
+		int minute = getIntFromDateString(mdh.format(f, md, "@{CreationDate: mm}"));
 
 		QueryRunner qr = new QueryRunner();
 
@@ -870,7 +870,8 @@ public class FotoDB {
 			return res;
 		}
 
-		System.out.println(String.format("D getThumbnail %s %d", f.getName(), height));
+		// System.out.println(String.format("D getThumbnail %s %d", f.getName(),
+		// height));
 
 		// check DB first
 		res = thumbnailExistsQR.query(conn,
@@ -893,7 +894,8 @@ public class FotoDB {
 				res = createThumbnail(foto, height);
 
 				if (null != res.image) {
-					System.out.println(String.format("D ... storing cache %s %d", f.getName(), height));
+					// System.out.println(String.format("D ... storing cache %s %d",
+					// f.getName(), height));
 					insertThumbnail(res);
 				}
 			}
@@ -1126,6 +1128,11 @@ public class FotoDB {
 	}
 
 	public void updateExif(Foto f) {
+
+		File exiftool = new File("/usr/bin/exiftool");
+		if (!exiftool.exists()) {
+			return;
+		}
 
 		File file = new File(f.path);
 

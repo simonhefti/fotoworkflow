@@ -17,7 +17,7 @@
 }
 .h300
 {
-    height: 360px;
+    height: 320px;
 }
 .r90
 {
@@ -63,6 +63,7 @@
   		<ul class="dropdown-menu">
     		<li><a href="?cmd=evernote-oauth"><i class="icon-ok-circle"></i> Authorize with Evernote</a></li>
     		<li><a href="?cmd=drive.oauth"><i class="icon-ok-circle"></i> Authorize with Google Drive</a></li>
+    		<li><a id="menuFeelLucky" href="#"> Feel Lucky</a></li>
 	    	<li><a id="menuImport" href="#"> Import Photos</a></li>
 	    	<li><a id="menuCustomNote" href="#"> Custom Note</a></li>
 	    	<li><a id="grid2_4" href="#"> 4 &times; 2</a></li>
@@ -597,6 +598,14 @@ $('#ping').on('click', function(e) {
 	$.getJSON(url, function(r){
 		_note(r.code, r.msg);
 	});
+});
+
+$('#menuFeelLucky').on('click', function(e) {
+	page = 1;
+	search_cmd = "feellucky";
+	search_k = "st";
+	search_v = $('#query').val();
+	searchFoto();
 });
 
 $('#menuImport').on('click', function(e) {

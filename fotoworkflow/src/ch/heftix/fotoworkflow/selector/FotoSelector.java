@@ -35,7 +35,6 @@ import ch.heftix.fotoworkflow.selector.cmd.ExcludeDocumentaryCommand;
 import ch.heftix.fotoworkflow.selector.cmd.FeelLuckyCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCLCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCommand;
-import ch.heftix.fotoworkflow.selector.cmd.GetMessagesCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ImportCommand;
 import ch.heftix.fotoworkflow.selector.cmd.InvalidateThumbnailCommand;
@@ -54,9 +53,11 @@ import ch.heftix.fotoworkflow.selector.drive.DriveOAuthCommand;
 import ch.heftix.fotoworkflow.selector.drive.DriveUtil;
 import ch.heftix.fotoworkflow.selector.drive.DriveVerifyCommand;
 import ch.heftix.fotoworkflow.selector.evernote.EvernoteLinkCommand;
+import ch.heftix.fotoworkflow.selector.evernote.EvernoteListFotos;
+import ch.heftix.fotoworkflow.selector.evernote.EvernoteOAuthCommand;
+import ch.heftix.fotoworkflow.selector.evernote.EvernoteTagURLonlyNotes;
 import ch.heftix.fotoworkflow.selector.evernote.EvernoteUtil;
 import ch.heftix.fotoworkflow.selector.evernote.EvernoteVerifyCommand;
-import ch.heftix.fotoworkflow.selector.evernote.EvernoteOAuthCommand;
 
 public class FotoSelector implements Container, IMessageSink {
 
@@ -97,7 +98,11 @@ public class FotoSelector implements Container, IMessageSink {
 		fs.register("evernote-oauth", new EvernoteOAuthCommand(fs));
 		fs.register("evernote-verify", new EvernoteVerifyCommand(fs));
 		fs.register("evernote-link", new EvernoteLinkCommand(fs));
-
+		
+		
+		fs.register("evernote-list", new EvernoteListFotos(fs));
+		fs.register("evernote-blankurl-process", new EvernoteTagURLonlyNotes(fs));
+		
 		fs.register("drive.oauth", new DriveOAuthCommand(fs));
 		fs.register("drive.verify", new DriveVerifyCommand(fs));
 		// fs.register("evernote-link", new EvernoteLinkCommand(fs));
