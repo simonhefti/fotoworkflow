@@ -862,16 +862,13 @@ public class FotoDB {
 		}
 	}
 
-	public Thumbnail getThumbnail(File f, int height) throws IOException, SQLException {
+	public Thumbnail getThumbnail(File f, int width, int height) throws IOException, SQLException {
 
 		Thumbnail res = null;
 
 		if (null == f) {
 			return res;
 		}
-
-		// System.out.println(String.format("D getThumbnail %s %d", f.getName(),
-		// height));
 
 		// check DB first
 		res = thumbnailExistsQR.query(conn,
@@ -891,7 +888,7 @@ public class FotoDB {
 
 			} else { // create and cache
 
-				res = createThumbnail(foto, height);
+				res = createThumbnail(foto, width, height);
 
 				if (null != res.image) {
 					// System.out.println(String.format("D ... storing cache %s %d",
@@ -904,7 +901,7 @@ public class FotoDB {
 		return res;
 	}
 
-	private Thumbnail createThumbnail(Foto f, int height) throws FileNotFoundException, IOException {
+	private Thumbnail createThumbnail(Foto f, int width, int height) throws FileNotFoundException, IOException {
 
 		// note(":) creating thumbnail for %s", f.path);
 
@@ -936,10 +933,10 @@ public class FotoDB {
 			// height = (int)Math.round(height / 1.45);
 			// }
 			Thumbnails.of(is).useExifOrientation(false).dithering(Dithering.ENABLE).outputQuality(.9)
-					.size(height, height).rotate(rotate).toOutputStream(baos);
+					.size(width, height).rotate(rotate).toOutputStream(baos);
 		} else {
 			Thumbnails.of(is).useExifOrientation(false).dithering(Dithering.ENABLE).outputQuality(.9)
-					.size(height, height).toOutputStream(baos);
+					.size(width, height).toOutputStream(baos);
 		}
 
 		is.close();

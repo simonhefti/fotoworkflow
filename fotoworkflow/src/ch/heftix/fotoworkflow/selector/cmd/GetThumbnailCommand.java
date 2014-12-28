@@ -37,16 +37,12 @@ public class GetThumbnailCommand implements WebCommand {
 
 		try {
 
-			String path = (String) params.get("path");
-			String width = (String) params.get("w");
-			int w = 280;
+			String path = params.get("path");
+			int width = params.getInt("w",300);
+			int height = params.getInt("h", 300);
 
 			if (null == path) {
 				return r;
-			}
-
-			if (null != width) {
-				w = Integer.parseInt(width);
 			}
 
 			File f = new File(path);
@@ -56,7 +52,7 @@ public class GetThumbnailCommand implements WebCommand {
 
 			FotoDB db = fs.getDB();
 
-			Thumbnail thumbnail = db.getThumbnail(f, w);
+			Thumbnail thumbnail = db.getThumbnail(f, width, height);
 
 			ByteArrayInputStream bais = new ByteArrayInputStream(thumbnail.image);
 

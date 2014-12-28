@@ -32,15 +32,11 @@ public class NextThumbnailCommand extends BaseWebCommand {
 		String searchterm = params.get("st");
 		int page = params.getInt("p", 0);
 		int pagesize = params.getInt("n", 10);
-		String width = params.get("w");
-		int w = 300;
+		int width = params.getInt("w", 300);
+		int height = params.getInt("h", 300);
 
 		if (null == searchterm) {
 			return;
-		}
-
-		if (null != width) {
-			w = Integer.parseInt(width);
 		}
 
 		FotoDB db = fs.getDB();
@@ -49,7 +45,7 @@ public class NextThumbnailCommand extends BaseWebCommand {
 
 		for (Foto foto : fns) {
 			File f = new File(foto.path);
-			db.getThumbnail(f, w);
+			db.getThumbnail(f, width, height);
 		}
 
 		jr.code = "ok";
