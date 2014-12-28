@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -10,11 +10,10 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
+import fi.iki.elonen.NanoHTTPD.Response;
 
 public interface WebCommand {
 
-	public void handle(Request request, Response response);
+	public Response handle(Params params);
 
 }

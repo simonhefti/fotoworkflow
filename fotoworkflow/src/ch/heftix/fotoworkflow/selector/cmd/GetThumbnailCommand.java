@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -10,16 +10,14 @@
  */
 package ch.heftix.fotoworkflow.selector.cmd;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.OutputStream;
-
-import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
 
 import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.Thumbnail;
+import fi.iki.elonen.NanoHTTPD.Response;
+import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 /**
  * get (or create) thumbnail from cache
@@ -33,43 +31,42 @@ public class GetThumbnailCommand implements WebCommand {
 		this.fs = fs;
 	}
 
-	public void handle(Request request, Response response) {
+	public Response handle(Params params) {
+
+		Response r = new Response(Status.INTERNAL_ERROR, "text/plain", "cannot handle request");
 
 		try {
 
-			Query q = request.getQuery();
-			String path = (String) q.get("path");
-			String width = (String) q.get("w");
+			String path = (String) params.get("path");
+			String width = (String) params.get("w");
 			int w = 280;
-			
+
 			if (null == path) {
-				return;
+				return r;
 			}
-			
-			if( null != width ) {
+
+			if (null != width) {
 				w = Integer.parseInt(width);
 			}
 
 			File f = new File(path);
 			if (!f.exists()) {
-				return;
+				return r;
 			}
-			
+
 			FotoDB db = fs.getDB();
 
 			Thumbnail thumbnail = db.getThumbnail(f, w);
 
-			OutputStream os = response.getOutputStream();
+			ByteArrayInputStream bais = new ByteArrayInputStream(thumbnail.image);
 
-			response.setValue("Content-Type", thumbnail.mimeType);
-			response.setDate("Last-Modified", f.lastModified());
-
-			os.write(thumbnail.image);
+			r = new Response(Status.OK, thumbnail.mimeType, bais);
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return r;
 
 	}
 }

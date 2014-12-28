@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -12,8 +12,6 @@ package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.util.Arrays;
 import java.util.List;
-
-import org.simpleframework.http.Query;
 
 import ch.heftix.fotoworkflow.selector.FotoSelector;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
@@ -30,10 +28,10 @@ public class ConfigGetCommand extends BaseWebCommand {
 		super(fs);
 	}
 
-	public void process(Query q, JsonResponse jr) throws Exception {
+	public void process(Params params, JsonResponse jr) throws Exception {
 
 		StringBufferPayload pl = new StringBufferPayload();
-		String k = q.get("k");
+		String k = params.get("k");
 		if (allowedKeys.contains(k)) {
 			String t = String.format("{\"%s\": \"%s\"}", k, fs.getConf(k));
 			pl.append(t);

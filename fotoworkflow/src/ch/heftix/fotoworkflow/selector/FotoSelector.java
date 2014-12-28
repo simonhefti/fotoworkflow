@@ -10,23 +10,13 @@
  */
 package ch.heftix.fotoworkflow.selector;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
-import org.simpleframework.http.core.Container;
-import org.simpleframework.http.core.ContainerServer;
-import org.simpleframework.transport.Server;
-import org.simpleframework.transport.connect.Connection;
-import org.simpleframework.transport.connect.SocketConnection;
 
 import ch.heftix.fotoworkflow.selector.cmd.AppendNoteCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ConfigGetCommand;
@@ -40,6 +30,7 @@ import ch.heftix.fotoworkflow.selector.cmd.ImportCommand;
 import ch.heftix.fotoworkflow.selector.cmd.InvalidateThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.NextMessageCommand;
 import ch.heftix.fotoworkflow.selector.cmd.NextThumbnailCommand;
+import ch.heftix.fotoworkflow.selector.cmd.Params;
 import ch.heftix.fotoworkflow.selector.cmd.PingCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseDateFotoCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseLocationFotoCommand;
@@ -49,25 +40,17 @@ import ch.heftix.fotoworkflow.selector.cmd.UpdateCommand;
 import ch.heftix.fotoworkflow.selector.cmd.UpdatePHashCommand;
 import ch.heftix.fotoworkflow.selector.cmd.UpdatePHashsCommand;
 import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
-import ch.heftix.fotoworkflow.selector.drive.DriveOAuthCommand;
-import ch.heftix.fotoworkflow.selector.drive.DriveUtil;
-import ch.heftix.fotoworkflow.selector.drive.DriveVerifyCommand;
-import ch.heftix.fotoworkflow.selector.evernote.EvernoteLinkCommand;
-import ch.heftix.fotoworkflow.selector.evernote.EvernoteListFotos;
-import ch.heftix.fotoworkflow.selector.evernote.EvernoteOAuthCommand;
-import ch.heftix.fotoworkflow.selector.evernote.EvernoteTagURLonlyNotes;
-import ch.heftix.fotoworkflow.selector.evernote.EvernoteUtil;
-import ch.heftix.fotoworkflow.selector.evernote.EvernoteVerifyCommand;
+import fi.iki.elonen.NanoHTTPD;
+import fi.iki.elonen.NanoHTTPD.Response.Status;
 
-public class FotoSelector implements Container, IMessageSink {
+public class FotoSelector extends NanoHTTPD implements IMessageSink {
 
 	private Map<String, WebCommand> commands = new HashMap<String, WebCommand>();
 	private FotoDB db = null;
-	public EvernoteUtil evernoteState = new EvernoteUtil();
-	public DriveUtil driveState = new DriveUtil();
 	private Queue<String> queue = new ConcurrentLinkedQueue<String>();
 
 	public FotoSelector() throws Exception {
+		super(1994);
 		db = new FotoDB();
 	}
 
@@ -76,9 +59,6 @@ public class FotoSelector implements Container, IMessageSink {
 		System.setProperty("java.awt.headless", "true");
 
 		FotoSelector fs = new FotoSelector();
-		Server server = new ContainerServer(fs);
-		Connection connection = new SocketConnection(server);
-		SocketAddress address = new InetSocketAddress(1994);
 
 		fs.register("list", new SearchFotoCommand(fs)); // list search fotos
 		fs.register("similar", new SearchSimilarFotoCommand(fs));
@@ -94,18 +74,6 @@ public class FotoSelector implements Container, IMessageSink {
 
 		fs.register("store", new UpdateCommand(fs)); // save attribute
 		fs.register("note.append", new AppendNoteCommand(fs)); // append note
-
-		fs.register("evernote-oauth", new EvernoteOAuthCommand(fs));
-		fs.register("evernote-verify", new EvernoteVerifyCommand(fs));
-		fs.register("evernote-link", new EvernoteLinkCommand(fs));
-		
-		
-		fs.register("evernote-list", new EvernoteListFotos(fs));
-		fs.register("evernote-blankurl-process", new EvernoteTagURLonlyNotes(fs));
-		
-		fs.register("drive.oauth", new DriveOAuthCommand(fs));
-		fs.register("drive.verify", new DriveVerifyCommand(fs));
-		// fs.register("evernote-link", new EvernoteLinkCommand(fs));
 
 		fs.register("invalidate_thumbnail", new InvalidateThumbnailCommand(fs));
 
@@ -123,39 +91,83 @@ public class FotoSelector implements Container, IMessageSink {
 		fs.register("exclude-documentary", new ExcludeDocumentaryCommand(fs));
 		fs.register("thumbnail.precache", new NextThumbnailCommand(fs));
 
-		connection.connect(address);
+		try {
+			fs.start();
+			System.out.println("started");
+		} catch (IOException ioe) {
+			System.err.println("Couldn't start server:\n" + ioe);
+			System.exit(-1);
+		}
 
 		BrowserOpen.openURL("http://localhost:1994");
+
+		// now wait
+		try {
+			System.in.read();
+		} catch (Throwable ignored) {
+		}
 	}
 
 	public void register(String name, WebCommand cmd) {
 		commands.put(name, cmd);
 	}
 
-	public void handle(Request request, Response response) {
+	@Override
+	public Response serve(IHTTPSession session) {
+
+		if (null == session) {
+			Response r = new Response(Status.OK, "text/plain", "IHTTPSession is required");
+			return r;
+		}
+
+		Params params = new Params(session);
+
+		String cmd = params.get("cmd");
+
+		long now = System.currentTimeMillis();
+
+		WebCommand wc = commands.get(cmd);
+		if (null == wc) {
+			wc = commands.get("default");
+		}
+
+		Response r = null;
+
+		System.out.println("m/q/u '" + session.getMethod() + "' '" + session.getQueryParameterString() + "' '"
+				+ session.getUri());
 
 		try {
-			Query q = request.getQuery();
-			Object cmd = q.get("cmd");
-			WebCommand wc = commands.get(cmd);
-
-			long time = System.currentTimeMillis();
-
-			response.setValue("Server", "FotoWorkflow/" + Version.getVersion());
-			response.setDate("Date", time);
-
-			if (null == wc) {
-				wc = commands.get("default");
-			}
-			wc.handle(request, response);
-
-			response.close();
-
+			r = wc.handle(params);
 		} catch (Exception e) {
-
 			e.printStackTrace();
 		}
+		return r;
 	}
+
+	// public void handle(Request request, Response response) {
+	//
+	// try {
+	// Query q = request.getQuery();
+	// Object cmd = q.get("cmd");
+	// WebCommand wc = commands.get(cmd);
+	//
+	// long time = System.currentTimeMillis();
+	//
+	// response.setValue("Server", "FotoWorkflow/" + Version.getVersion());
+	// response.setDate("Date", time);
+	//
+	// if (null == wc) {
+	// wc = commands.get("default");
+	// }
+	// wc.handle(request, response);
+	//
+	// response.close();
+	//
+	// } catch (Exception e) {
+	//
+	// e.printStackTrace();
+	// }
+	// }
 
 	public void setConf(String key, String val) {
 		db.setConf(key, val);

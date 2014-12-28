@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -12,15 +12,12 @@ package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.util.List;
 
-import org.simpleframework.http.Query;
-import org.simpleframework.http.Request;
-import org.simpleframework.http.Response;
-
 import ch.heftix.fotoworkflow.selector.Foto;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
-import ch.heftix.fotoworkflow.selector.json.JsonHelper;
 import ch.heftix.fotoworkflow.selector.json.JsonResponse;
 import ch.heftix.fotoworkflow.selector.json.StringBufferPayload;
+import fi.iki.elonen.NanoHTTPD.Response;
+import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 /**
  * base class for web commands
@@ -33,17 +30,18 @@ public abstract class BaseWebCommand implements WebCommand {
 		this.fs = fs;
 	}
 
-	abstract public void process(Query y, JsonResponse jr) throws Exception;
+	abstract public void process(Params params, JsonResponse jr) throws Exception;
 
-	public void handle(Request request, Response response) {
+	public Response handle(Params params) {
+
+		Response r = new Response(Status.INTERNAL_ERROR, "text/plain", "cannot handle request");
 
 		try {
 
 			JsonResponse jr = new JsonResponse();
-			Query q = request.getQuery();
 
 			try {
-				process(q, jr);
+				process(params, jr);
 			} catch (Exception e) {
 				jr.code = "error";
 				jr.msg = "cannot process: " + e.getMessage();
@@ -51,12 +49,14 @@ public abstract class BaseWebCommand implements WebCommand {
 				e.printStackTrace(); // cannot process
 			}
 
-			JsonHelper.send(jr, response);
+			r = new Response(Status.OK, "application/json;charset=UTF-8", jr.toJSON());
 
 		} catch (Exception e) { // cannot send
 			// TODO
 			e.printStackTrace();
 		}
+
+		return r;
 	}
 
 	public static void list(List<Foto> elements, StringBufferPayload sb) {

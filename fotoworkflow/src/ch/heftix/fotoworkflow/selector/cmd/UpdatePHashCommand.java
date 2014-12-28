@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -9,8 +9,6 @@
  * Initial Developer: Simon Hefti
  */
 package ch.heftix.fotoworkflow.selector.cmd;
-
-import org.simpleframework.http.Query;
 
 import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
@@ -25,9 +23,9 @@ public class UpdatePHashCommand extends BaseWebCommand {
 		super(fs);
 	}
 
-	public void process(Query q, JsonResponse jr) throws Exception {
+	public void process(Params params, JsonResponse jr) throws Exception {
 
-		String path = q.get("path");
+		String path = params.get("path");
 
 		FotoDB db = fs.getDB();
 

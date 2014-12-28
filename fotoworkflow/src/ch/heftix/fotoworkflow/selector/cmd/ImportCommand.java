@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -12,8 +12,6 @@ package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.io.File;
 import java.util.regex.Pattern;
-
-import org.simpleframework.http.Query;
 
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
 import ch.heftix.fotoworkflow.selector.FotoImport;
@@ -29,11 +27,11 @@ public class ImportCommand extends BaseWebCommand {
 		super(fs);
 	}
 
-	public void process(Query q, JsonResponse jr) throws Exception {
+	public void process(Params params, JsonResponse jr) throws Exception {
 
-		String path = q.get("path");
-		String pattern = q.get("pattern");
-		String note = q.get("note");
+		String path = params.get("path");
+		String pattern = params.get("pattern");
+		String note = params.get("note");
 
 		if (null == path || path.length() < 1) {
 			jr.code = "error";
