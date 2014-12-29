@@ -101,7 +101,7 @@ public class Foto implements Payload {
 		sb.append("}");
 		return sb.toString();
 	}
-	
+
 	public String getName() {
 		String res = "NoName";
 		if (null != path) {
@@ -110,6 +110,28 @@ public class Foto implements Payload {
 				res = path.substring(p + 1);
 			}
 		}
+		return res;
+	}
+
+	public Foto clone() {
+		Foto res = new Foto();
+		res.path = this.path;
+		res.mimeType = this.mimeType;
+		res.orientation = this.orientation;
+		res.w = this.w;
+		res.h = this.h;
+		res.category = this.category;
+		res.note = this.note;
+		res.noteId = this.noteId;
+		res.make = this.make;
+		res.model = this.model;
+		res.geo_long = this.geo_long;
+		res.geo_lat = this.geo_lat;
+		res.creationdate = this.creationdate;
+		res.phash = this.phash;
+		res.isMissing = this.isMissing;
+		res.tmpKmFrom = this.tmpKmFrom;
+		res.stamp = this.stamp;
 		return res;
 	}
 }

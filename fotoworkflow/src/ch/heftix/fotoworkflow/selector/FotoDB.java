@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -47,6 +48,8 @@ import org.sqlite.SQLiteJDBCLoader;
 
 import ch.heftix.fotoworkflow.mover.GeoPoint;
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
+import done.cm.ConnectionDescription;
+import done.cm.SimpleConnectionManager;
 
 public class FotoDB {
 
@@ -75,7 +78,19 @@ public class FotoDB {
 
 	SimpleDateFormat timestampFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
+	private SimpleConnectionManager cm = new SimpleConnectionManager();
+	private ConnectionDescription cd = null;
+
+	private FotoMove fotoMove = null;
+
 	protected FotoDB() throws Exception {
+
+		String home = System.getProperty("user.home");
+
+		cd = new ConnectionDescription();
+		cd.driver = "org.sqlite.JDBC";
+		cd.id = "fotoarchive";
+		cd.jdbcUrl = "jdbc:sqlite:" + home + "/.foto-thumbnails.db";
 
 		Class.forName("org.sqlite.JDBC");
 
@@ -120,12 +135,18 @@ public class FotoDB {
 		} catch (SQLException e) {
 			note("cannot connect to DB: %s", e.getMessage(), e);
 		}
+
+		this.fotoMove = new FotoMove(this);
 	}
 
 	protected Connection getConnection() throws SQLException {
 		String home = System.getProperty("user.home");
 		Connection c = DriverManager.getConnection("jdbc:sqlite:" + home + "/.foto-thumbnails.db");
 		return c;
+	}
+	
+	public void moveFoto(String path, String album) throws Exception {
+		fotoMove.moveFoto(path, album);
 	}
 
 	public void storeInfo(String path, String k, String v) throws SQLException {
@@ -149,6 +170,19 @@ public class FotoDB {
 		QueryRunner qr = new QueryRunner();
 		String sql = "update foto set " + k + "=?,stamp=?" + " where path=?";
 		qr.update(conn, sql, v, stamp, path);
+
+		try {
+			if ("category".equals(k) && "best-of".equals(v)) {
+				moveFoto(path, "bestof");
+			} else if ("category".equals(k) && "selection".equals(v)) {
+				moveFoto(path, "selection");
+			}
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 
 	private String getInfo(String path, String key) throws SQLException {
@@ -307,6 +341,24 @@ public class FotoDB {
 					o, phash, isMissing, stamp);
 		}
 
+	}
+
+	public void updatePath(String path, String newPath) {
+
+		try {
+			Connection c = cm.nextFree(cd);
+			String sql = "update foto set path=? where path=?";
+			PreparedStatement p = c.prepareStatement(sql);
+			p.clearParameters();
+			p.setString(1, newPath);
+			p.setString(2, path);
+			p.executeUpdate();
+			p.close();
+			cm.bringConnectionBack(cd.id, c);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public void updateFoto(File f, String note) throws IOException, SQLException {
@@ -578,17 +630,7 @@ public class FotoDB {
 	 */
 	public List<Foto> searchCloseDate(String path, int page, int pagesize) throws SQLException {
 		List<Foto> res = new ArrayList<Foto>();
-		res = searchCloseDate(path, page, pagesize, 3);
-		// int nDays = 2;
-		// int cnt = 0;
-		// while (res.size() < pagesize * 2 && cnt < 7) {
-		// res = searchCloseDate(path, page, pagesize, nDays);
-		// nDays *= 2;
-		// cnt++;
-		// System.out.println(String.format("nDays: %d cnt %d size %d", nDays,
-		// cnt, res.size()));
-		//
-		// }
+		res = searchCloseDate(path, page, pagesize, 1);
 		return res;
 	}
 
