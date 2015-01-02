@@ -11,7 +11,6 @@
 package ch.heftix.fotoworkflow.selector.cmd;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 
 import ch.heftix.fotoworkflow.selector.FotoDB;
 import ch.heftix.fotoworkflow.selector.FotoSelector;
@@ -37,22 +36,17 @@ public class GetThumbnailCommand implements WebCommand {
 
 		try {
 
-			String path = params.get("path");
-			int width = params.getInt("w",300);
+			int fotoid = params.getInt("fotoid", -1);
+			int width = params.getInt("w", 300);
 			int height = params.getInt("h", 300);
 
-			if (null == path) {
-				return r;
-			}
-
-			File f = new File(path);
-			if (!f.exists()) {
+			if (-1 == fotoid) {
 				return r;
 			}
 
 			FotoDB db = fs.getDB();
 
-			Thumbnail thumbnail = db.getThumbnail(f, width, height);
+			Thumbnail thumbnail = db.getThumbnail(fotoid, width, height);
 
 			ByteArrayInputStream bais = new ByteArrayInputStream(thumbnail.image);
 

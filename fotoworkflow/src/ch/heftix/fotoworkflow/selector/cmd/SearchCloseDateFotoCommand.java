@@ -29,13 +29,13 @@ public class SearchCloseDateFotoCommand extends BaseWebCommand {
 
 	public void process(Params params, JsonResponse jr) throws Exception {
 
-		String path = params.get("path");
+		int fotoid = params.getInt("fotoid", -1);
 		int page = params.getInt("p", 0);
 		int pagesize = params.getInt("n", 10);
 
 		FotoDB db = fs.getDB();
 
-		List<Foto> fns = db.searchCloseDate(path, page, pagesize);
+		List<Foto> fns = db.searchCloseDate(fotoid, page, pagesize);
 
 		StringBufferPayload pl = new StringBufferPayload();
 		BaseWebCommand.list(fns, pl);

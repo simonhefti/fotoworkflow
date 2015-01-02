@@ -24,14 +24,14 @@ public class UpdateCommand extends BaseWebCommand {
 
 	public void process(Params params, JsonResponse jr) throws Exception {
 
-		String path = params.get("path");
+		int fotoid = params.getInt("fotoid",-1);
 		String k = params.get("k");
 		String v = params.get("v");
 
-		fs.storeInfo(path, k, v);
+		fs.storeInfo(fotoid, k, v);
 
 		jr.code = "ok";
-		jr.msg = String.format("updated '%s' for %s", v, path);
+		jr.msg = String.format("updated '%s' for %d", v, fotoid);
 
 	}
 

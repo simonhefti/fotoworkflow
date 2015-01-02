@@ -29,16 +29,12 @@ import ch.heftix.fotoworkflow.selector.cmd.GetThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ImportCommand;
 import ch.heftix.fotoworkflow.selector.cmd.InvalidateThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.NextMessageCommand;
-import ch.heftix.fotoworkflow.selector.cmd.NextThumbnailCommand;
 import ch.heftix.fotoworkflow.selector.cmd.Params;
 import ch.heftix.fotoworkflow.selector.cmd.PingCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseDateFotoCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseLocationFotoCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchFotoCommand;
-import ch.heftix.fotoworkflow.selector.cmd.SearchSimilarFotoCommand;
 import ch.heftix.fotoworkflow.selector.cmd.UpdateCommand;
-import ch.heftix.fotoworkflow.selector.cmd.UpdatePHashCommand;
-import ch.heftix.fotoworkflow.selector.cmd.UpdatePHashsCommand;
 import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
@@ -61,7 +57,6 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 		FotoSelector fs = new FotoSelector();
 
 		fs.register("list", new SearchFotoCommand(fs)); // list search fotos
-		fs.register("similar", new SearchSimilarFotoCommand(fs));
 		fs.register("closedate", new SearchCloseDateFotoCommand(fs));
 		fs.register("closeloc", new SearchCloseLocationFotoCommand(fs));
 		fs.register("feellucky", new FeelLuckyCommand(fs));
@@ -83,13 +78,8 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 		fs.register("cfg.set", new ConfigSetCommand(fs));
 
 		fs.register("msg.next", new NextMessageCommand(fs));
-		// fs.register("msg.get", new GetMessagesCommand(fs));
-
-		fs.register("update-phash", new UpdatePHashCommand(fs));
-		fs.register("update-phashs", new UpdatePHashsCommand(fs));
 
 		fs.register("exclude-documentary", new ExcludeDocumentaryCommand(fs));
-		fs.register("thumbnail.precache", new NextThumbnailCommand(fs));
 
 		try {
 			fs.start();
@@ -133,41 +123,38 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 
 		Response r = null;
 
-		System.out.println("m/q/u '" + session.getMethod() + "' '" + session.getQueryParameterString() + "' '"
-				+ session.getUri());
+		// System.out.println("m/q/u '" + session.getMethod() + "' '" +
+		// session.getQueryParameterString() + "' '"
+		// + session.getUri());
 
 		try {
 			r = wc.handle(params);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		if (null != cmd && !"msg.next".equals(cmd)) {
+			// asynchronously record this event
+			final String user = "";
+			final String path = params.get("path");
+			final String type = cmd;
+			final String uri = session.getUri();
+			final String qs = session.getQueryParameterString();
+			final int fotoid = params.getInt("fotoid", -1);
+			final FotoDB db = this.db;
+			final String arg1 = params.get("k");
+			final String arg2 = params.get("v");
+			Runnable task = new Runnable() {
+				public void run() {
+					db.addEvent(type, arg1, arg2, user, fotoid, path, uri, qs);
+				}
+			};
+			Thread worker = new Thread(task);
+			worker.start();
+		}
+
 		return r;
 	}
-
-	// public void handle(Request request, Response response) {
-	//
-	// try {
-	// Query q = request.getQuery();
-	// Object cmd = q.get("cmd");
-	// WebCommand wc = commands.get(cmd);
-	//
-	// long time = System.currentTimeMillis();
-	//
-	// response.setValue("Server", "FotoWorkflow/" + Version.getVersion());
-	// response.setDate("Date", time);
-	//
-	// if (null == wc) {
-	// wc = commands.get("default");
-	// }
-	// wc.handle(request, response);
-	//
-	// response.close();
-	//
-	// } catch (Exception e) {
-	//
-	// e.printStackTrace();
-	// }
-	// }
 
 	public void setConf(String key, String val) {
 		db.setConf(key, val);
@@ -177,10 +164,10 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 		return db.getConf(key);
 	}
 
-	public Foto getFoto(String path) {
+	public Foto getFoto(int fotoid) {
 		Foto res = null;
 		try {
-			res = db.getFoto(path);
+			res = db.getFoto(fotoid);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -188,20 +175,20 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 		return res;
 	}
 
-	public void storeInfo(String path, String k, String v) {
+	public void storeInfo(int fotoid, String k, String v) {
 		try {
-			db.storeInfo(path, k, v);
+			db.storeInfo(fotoid, k, v);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	public void appendNote(String path, String v) {
+	public void appendNote(int fotoid, String v) {
 		try {
-			db.appendNote(path, v);
+			db.appendNote(fotoid, v);
 		} catch (SQLException e) {
-			String msg = String.format("Cannot update note. Path: %s. Note: %s. Reason: %s", path, v, e);
+			String msg = String.format("Cannot update note. fotoid: %d. Note: %s. Reason: %s", fotoid, v, e);
 			message(msg);
 		}
 	}
@@ -222,6 +209,15 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 			queue.add("category documentary now excluded by default");
 		} else {
 			queue.add("category documentary included by default");
+		}
+	}
+
+	public void toggleExcludePrivatey() {
+		boolean ex = db.toggleExcludePrivate();
+		if (ex) {
+			queue.add("private fotos now excluded by default");
+		} else {
+			queue.add("private fotos included by default");
 		}
 	}
 

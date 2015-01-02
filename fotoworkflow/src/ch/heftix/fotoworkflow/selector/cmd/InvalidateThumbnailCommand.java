@@ -26,14 +26,14 @@ public class InvalidateThumbnailCommand extends BaseWebCommand {
 
 	public void process(Params params, JsonResponse jr) throws Exception {
 
-		String path = params.get("path");
+		int fotoid = params.getInt("fotoid", -1);
 
-		if (null == path) {
+		if (-1 == fotoid) {
 			return;
 		}
 
 		FotoDB db = fs.getDB();
-		db.invalidateThumbnail(path);
+		db.invalidateThumbnail(fotoid);
 
 		jr.code = "ok";
 		jr.msg = "done";

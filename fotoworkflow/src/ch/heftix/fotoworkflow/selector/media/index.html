@@ -53,7 +53,7 @@
     right:0;
     background:rgba(66, 139, 202, 0.2);
     width:100%;
-    height:100%;
+    height:30%;
     padding:2%;
     display: none;
     text-align:center;
@@ -80,6 +80,7 @@
 	    	<li><a id="grid2_4" href="#"> 4 &times; 2</a></li>
 	    	<li><a id="grid1_1" href="#"> 1 &times; 1</a></li>
 	    	<li><a id="exclude_documentary" href="#"> Toggle exclude documentary</a></li>
+	    	<li><a id="exclude_private" href="#"> Toggle exclude private</a></li>
 	    	<li><a id="ping" href="#"> Ping</a></li>
 		</ul>
 	</div>
@@ -223,24 +224,24 @@ var _rotate = function rotate(el, ang, parent) {
 	parent.attr("height",w + 20);
 }
 
-var _save = function(path, k, v) {
-	if( undefined == path) {
+var _save = function(fotoid, k, v) {
+	if( undefined == fotoid) {
 		return;
 	}
-	var url = "/?cmd=store&path=" + path + "&k=" + k + "&v="+v;
+	var url = "/?cmd=store&fotoid=" + fotoid + "&k=" + k + "&v="+v;
 	// console.log("saving v %s for k %s of path %s", v, k, path);
 	$.get(url, function(response){
-		_note("info", "saved " + v + " for " + path);
+		_note("info", "saved " + v + " for " + fotoid);
 	});
 }
 
-var _appendnote = function(path, v) {
-	if( undefined == path) {
+var _appendnote = function(fotoid, v) {
+	if( undefined == fotoid) {
 		return;
 	}
-	var url = "/?cmd=note.append&path=" + path + "&v="+v;
+	var url = "/?cmd=note.append&fotoid=" + fotoid + "&v="+v;
 	$.get(url, function(response){
-		_note("info", "note saved for " + path);
+		_note("info", "note saved for " + fotoid);
 	});
 }
 
@@ -258,19 +259,19 @@ var _readCustomNote = function() {
 	});
 }
 
-var _setRotation = function setRotation(path, angle, img) {
+var _setRotation = function setRotation(fotoid, angle, img) {
 	_save(path, "orientation", angle);
-	var url = "/?cmd=invalidate_thumbnail&path=" + path;
+	var url = "/?cmd=invalidate_thumbnail&fotoid=" + fotoid;
 	$.ajax({
 		  type: 'GET',
 		  url: url,
 		  async: false,
 		  success: function(response){
-			  _note("info", "thumbnail invalidated for " + path);
+			  _note("info", "thumbnail invalidated for " + fotoid);
 		  },
 	});	
 	var now = new Date().getTime();
-	url = "/?cmd=thumbnail&t=" + now + "&path=" + path;
+	url = "/?cmd=thumbnail&t=" + now + "&fotoid=" + fotoid;
 	img.attr("src",url);
 }
 
@@ -293,7 +294,7 @@ var _qualificationButton = function(item, iconName, category) {
 var _customNoteButton = function(item) {
 	var bDoc = $("<a class='btn btn-primary btn-xs' href='#'>c</a>");
 	bDoc.on('click', function(e) {
-		_appendnote(item.path, $('#customNote').val());
+		_appendnote(item.fotoid, $('#customNote').val());
 	});
 	return bDoc;
 }
@@ -314,7 +315,7 @@ function showFoto(data) {
 		if( 1 == cols ) {
 			tr = $( "<div class='col-lg-12'/>" );
 		}
-		tr.data('path',item.path);
+		tr.data('fotoid',item.fotoid);
 		
 		// var td = $("<div class='h300 thumbnail' />");
 		// if( 1 == cols ) {
@@ -324,7 +325,7 @@ function showFoto(data) {
 		tr.append(td);
 
 		//var url = "/?cmd=thumbnail&path=" + item.path + "&w=" + td.width() + "&h=" + td.height();
-		var url = "/?cmd=thumbnail&path=" + item.path + "&w=300&h=300";
+		var url = "/?cmd=thumbnail&fotoid=" + item.fotoid + "&w=300&h=300";
 
 		var img = $("<img src='" + url + "'>");
 		// if( 1 == cols ) {
@@ -347,8 +348,6 @@ function showFoto(data) {
 		det_div.append(item.geo_lat);
 		det_div.append("Note: ");
 		det_div.append(item.note);
-		det_div.append("&nbsp;EN: ");
-		det_div.append(item.noteId);
 		det_div.append("<br />");
 
 		// var d_i = $("<img src='" + item.w600 + "'>");
@@ -386,19 +385,19 @@ function showFoto(data) {
 		}
 		ip.bind('change', function() { 
 		    var f = $(this) // get the current value of the input field.
-			_save(item.path, "note", f.val());
+			_save(item.fotoid, "note", f.val());
 		});
 		commands.append(ip);
 		
 		var b090 = $("<button class='btn btn-info btn-xs' type='button'>R</button>");
 		b090.on('click', function(e) {
-			_setRotation(item.path, "90 CW", img);
+			_setRotation(item.fotoid, "90 CW", img);
 		});
 		commands.append(b090);
 		
 		var b270 = $("<button class='btn btn-info btn-xs' type='button'>L</button>");
 		b270.on('click', function(e) {
-			_setRotation(item.path, "270 CW", img);
+			_setRotation(item.fotoid, "270 CW", img);
 		});
 		commands.append(b270);
 		
@@ -430,8 +429,8 @@ function showFoto(data) {
 		var bSim = $("<button class='btn btn-info btn-xs' type='button'>Sim</button>");
 		bSim.on('click', function(e) {
 			search_cmd = "similar";
-			search_k = "path";
-			search_v = item.path;
+			search_k = "fotoid";
+			search_v = item.fotoid;
 			page = 1;
 			searchFoto();
 		});
@@ -441,8 +440,8 @@ function showFoto(data) {
 		var bCD = $("<button class='btn btn-info btn-xs' type='button'>Date</button>");
 		bCD.on('click', function(e) {
 			search_cmd = "closedate";
-			search_k = "path";
-			search_v = item.path;
+			search_k = "fotoid";
+			search_v = item.fotoid;
 			page = 1;
 			searchFoto();
 		});
@@ -452,12 +451,24 @@ function showFoto(data) {
 		var bCL = $("<button class='btn btn-info btn-xs' type='button'>Loc</button>");
 		bCL.on('click', function(e) {
 			search_cmd = "closeloc";
-			search_k = "path";
-			search_v = item.path;
+			search_k = "fotoid";
+			search_v = item.fotoid;
 			page = 1;
 			searchFoto();
 		});
 		commands.append(bCL);
+
+		var p = $("<p />");
+		p.text(shorten(item.filename, 48, '...'));
+		commands.append(p);
+
+		var p = $("<p />");
+		p.text(item.fotoid);
+		commands.append(p);
+
+		var p = $("<p />");
+		p.text(item.geo_lat + ", " + item.geo_long);
+		commands.append(p);
 
 		twitterList.append(tr);
 	});
@@ -554,7 +565,7 @@ elem.on('click', function(e) {
 $('#doc-all').on('click', function(e) {
   $('#output div div').each(function(index) {
 	  var v = $(this);
-	  var f = v.data('path');
+	  var f = v.data('fotoid');
 	  _save(f,"category", "documentary");
   });  
 });
@@ -562,7 +573,7 @@ $('#doc-all').on('click', function(e) {
 function label_all() {
   $('#output div div').each(function(index) {
 	  var v = $(this);
-	  var f = v.data('path');
+	  var f = v.data('fotoid');
 	  var t = $('#label-all').val();
 	  _save(f,"note", t);
   });
@@ -583,7 +594,6 @@ function _readNextMessages() {
 	var url = "/?cmd=msg.next";
 	$.getJSON(url, function(data) {
 		$.each( data.payload, function( index, item ) {
-			console.log("nxt msg: " + item.msg);
 			if( undefined != item && "null" != item) {
 				_note("info", item.msg);
 			}
@@ -661,6 +671,13 @@ $('#grid1_1').on('click', function(e) {
 
 $('#exclude_documentary').on('click', function(e) {
 	$.getJSON("/?cmd=exclude-documentary", function(r){
+		_note(r.code, r.msg);
+	});
+	searchFoto();
+});
+
+$('#exclude_private').on('click', function(e) {
+	$.getJSON("/?cmd=exclude-private", function(r){
 		_note(r.code, r.msg);
 	});
 	searchFoto();

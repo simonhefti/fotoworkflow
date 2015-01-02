@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -38,13 +38,11 @@ public class FotoMove {
 		dryRun = true;
 	}
 
-	public void moveFoto(String path, String album) throws Exception {
+	public void moveFoto(int fotoid, String album) throws Exception {
 
-		if (null == path) {
-			return;
-		}
+		Foto foto = db.getFoto(fotoid);
 
-		File file = new File(path);
+		File file = new File(foto.path);
 		if (!file.exists()) {
 			return;
 		}
@@ -95,8 +93,8 @@ public class FotoMove {
 
 			try {
 				Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-				db.updatePath(path, newName);
-				note("  moved %s to %s", path, newName);
+				db.updatePath(fotoid, newName);
+				note("  moved %d to %s", fotoid, newName);
 			} catch (IOException e) {
 				note("cannot move: %s", e);
 				e.printStackTrace();

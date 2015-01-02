@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti. All rights reserved.
+ * Copyright (C) 2008-2015 by Simon Hefti. All rights reserved.
  * Licensed under the EPL 1.0 (Eclipse Public License).
  * (see http://www.eclipse.org/legal/epl-v10.html)
  * 
@@ -85,7 +85,7 @@ public class FotoImport {
 		// }
 
 		// System.out.println(file.getAbsolutePath());
-		
+
 		FormatResult fr = mdh.format(file);
 		if (fr.doSkip()) {
 			note("  skipping %s", file.getAbsolutePath());
@@ -97,7 +97,7 @@ public class FotoImport {
 			file.delete();
 			return;
 		}
-		
+
 		String newName = fr.getResult();
 
 		if (dryRun) {
@@ -114,11 +114,10 @@ public class FotoImport {
 				Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
 				note("  --> %s", newName);
 				if (db.existsFoto(newName)) {
-					note("  already stored, updating %s", newName);
-					db.updateFoto(nf, note);
-				} else {
-					db.insertFoto(nf, note);
+					note("  already stored, deleting existing %s", newName);
+					db.deleteFoto(newName);
 				}
+				db.insertFoto(nf, note);
 				fs.message("imported " + nf.getName());
 			} catch (IOException e) {
 				fs.message("cannot import: %s", e);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 by Simon Hefti.
+ * Copyright (C) 2008-2015 by Simon Hefti.
  * All rights reserved.
  * 
  * Licensed under the EPL 1.0 (Eclipse Public License).
@@ -18,10 +18,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -72,9 +68,10 @@ public class FotoDB {
 	String pCreationDate = "@{CreationDate: yyyy-MM-dd'T'HHmm}";
 	String pModel = "@{Model}";
 
-	String fotoattrs = "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,phash,isMissing,stamp";
+	String fotoattrs = "fotoid,path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,isMissing,isPrivate";
 
 	private boolean excludeDocumentary = true;
+	private boolean excludePrivate = true;
 
 	SimpleDateFormat timestampFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
@@ -122,10 +119,11 @@ public class FotoDB {
 				public Thumbnail handle(ResultSet rs) throws SQLException {
 					if (rs.next()) {
 						Thumbnail res = new Thumbnail();
-						res.path = rs.getString(1);
-						res.image = rs.getBytes(2);
-						res.height = rs.getInt(3);
-						res.mimeType = rs.getString(4);
+						res.fotoid = rs.getInt(1);
+						res.path = rs.getString(2);
+						res.image = rs.getBytes(3);
+						res.height = rs.getInt(4);
+						res.mimeType = rs.getString(5);
 						return res;
 					}
 					return null;
@@ -144,16 +142,16 @@ public class FotoDB {
 		Connection c = DriverManager.getConnection("jdbc:sqlite:" + home + "/.foto-thumbnails.db");
 		return c;
 	}
-	
-	public void moveFoto(String path, String album) throws Exception {
-		fotoMove.moveFoto(path, album);
+
+	public void moveFoto(int fotoid, String album) throws Exception {
+		fotoMove.moveFoto(fotoid, album);
 	}
 
-	public void storeInfo(String path, String k, String v) throws SQLException {
+	public void storeInfo(int fotoid, String k, String v) throws SQLException {
 
-		List<String> allowedKeys = Arrays.asList("note", "orientation", "category", "noteId");
+		List<String> allowedKeys = Arrays.asList("note", "orientation", "category");
 
-		if (null == path || null == k || null == v) {
+		if (null == k || null == v) {
 			return;
 		}
 
@@ -165,17 +163,16 @@ public class FotoDB {
 			return;
 		}
 
-		String stamp = getStamp();
-
+		// String stamp = getStamp();
 		QueryRunner qr = new QueryRunner();
-		String sql = "update foto set " + k + "=?,stamp=?" + " where path=?";
-		qr.update(conn, sql, v, stamp, path);
+		String sql = "update foto set " + k + "=?" + " where fotoid=?";
+		qr.update(conn, sql, v, fotoid);
 
 		try {
 			if ("category".equals(k) && "best-of".equals(v)) {
-				moveFoto(path, "bestof");
+				moveFoto(fotoid, "bestof");
 			} else if ("category".equals(k) && "selection".equals(v)) {
-				moveFoto(path, "selection");
+				moveFoto(fotoid, "selection");
 			}
 
 		} catch (Exception e) {
@@ -185,14 +182,29 @@ public class FotoDB {
 
 	}
 
-	private String getInfo(String path, String key) throws SQLException {
+	public void addEvent(final String type, final String arg1, final String arg2, final String user, int fotoid,
+			final String path, final String uri, final String qs) {
 
-		if (null == path || null == key) {
+		QueryRunner qr = new QueryRunner();
+		String sql = "insert into event (stamp, type, arg1, arg2, user, fotoid, path, uri, qs) values (?,?,?,?,?,?,?,?,?)";
+		try {
+			Connection c = cm.nextFree(cd);
+			Date now = new Date();
+			qr.update(conn, sql, now, type, arg1, arg2, user, fotoid, path, uri, qs);
+			cm.bringConnectionBack(cd.id, c);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private String getInfo(int fotoid, String key) throws SQLException {
+
+		if (null == key) {
 			return null;
 		}
 
 		QueryRunner qr = new QueryRunner();
-		String sql = String.format("select %s from foto where path=?", key);
+		String sql = String.format("select %s from foto where fotoid=?", key);
 		ResultSetHandler<String> rsh = new ResultSetHandler<String>() {
 			public String handle(ResultSet rs) throws SQLException {
 				if (rs.next()) {
@@ -201,17 +213,17 @@ public class FotoDB {
 				return null;
 			}
 		};
-		String res = qr.query(conn, sql, rsh, path);
+		String res = qr.query(conn, sql, rsh, fotoid);
 		return res;
 	}
 
-	public String getNote(String path) throws SQLException {
-		return getInfo(path, "note");
+	public String getNote(int fotoid) throws SQLException {
+		return getInfo(fotoid, "note");
 	}
 
-	public void appendNote(String path, String v) throws SQLException {
+	public void appendNote(int fotoid, String v) throws SQLException {
 
-		if (null == path || null == v) {
+		if (null == v) {
 			return;
 		}
 
@@ -221,7 +233,7 @@ public class FotoDB {
 
 		String stamp = getStamp();
 
-		String note = getNote(path);
+		String note = getNote(fotoid);
 		if (null == note) {
 			note = v;
 		} else {
@@ -229,8 +241,8 @@ public class FotoDB {
 		}
 
 		QueryRunner qr = new QueryRunner();
-		String sql = "update foto set note=?,stamp=?" + " where path=?";
-		qr.update(conn, sql, note, stamp, path);
+		String sql = "update foto set note=?,stamp=?" + " where fotoid=?";
+		qr.update(conn, sql, note, stamp, fotoid);
 	}
 
 	public synchronized String getStamp() {
@@ -243,8 +255,24 @@ public class FotoDB {
 		return znow;
 	}
 
+	public boolean existsFoto(int fotoid) throws SQLException {
+		boolean res = false;
+		int cnt = fotoExistsQR.query(conn, "select count(path) from foto where fotoid=?", fotoExistsRSH, fotoid);
+		if (0 != cnt) {
+			res = true;
+		}
+		return res;
+	}
+
+	public boolean existsFoto(File f) throws SQLException {
+		return existsFoto(f.getAbsolutePath());
+	}
+
 	public boolean existsFoto(String path) throws SQLException {
 		boolean res = false;
+		if (null == path) {
+			return res;
+		}
 		int cnt = fotoExistsQR.query(conn, "select count(path) from foto where path=?", fotoExistsRSH, path);
 		if (0 != cnt) {
 			res = true;
@@ -274,6 +302,28 @@ public class FotoDB {
 		return res;
 	}
 
+	public void deleteFoto(int fotoid) throws Exception {
+
+		Connection c = cm.nextFree(cd);
+		PreparedStatement ps = c.prepareStatement("delete from foto where fotoid=?");
+		ps.clearParameters();
+		ps.setInt(1, fotoid);
+		ps.execute();
+		ps.close();
+		cm.bringConnectionBack(cd.id, c);
+	}
+
+	public void deleteFoto(String path) throws Exception {
+
+		Connection c = cm.nextFree(cd);
+		PreparedStatement ps = c.prepareStatement("delete from foto where path=?");
+		ps.clearParameters();
+		ps.setString(1, path);
+		ps.execute();
+		ps.close();
+		cm.bringConnectionBack(cd.id, c);
+	}
+
 	public void insertFoto(Connection c, File f, String note) throws IOException, SQLException {
 
 		if (null == f) {
@@ -285,7 +335,7 @@ public class FotoDB {
 		}
 
 		// check existence
-		boolean cnt = existsFoto(f.getAbsolutePath());
+		boolean cnt = existsFoto(f);
 		if (cnt) {
 			return;
 		}
@@ -314,44 +364,54 @@ public class FotoDB {
 		int h = mdh.getHeight(md);
 		String phash = Foto.defaultHash;
 		int isMissing = 0;
-		String stamp = getStamp();
+		int isPrivate = 0;
 
+		boolean hasNote = (null != note && note.length() > 1);
+
+		StringBuffer vals = new StringBuffer(1024);
 		StringBuffer sb = new StringBuffer(1024);
-		sb.append("insert into foto (path,mimetype,creationdate");
+		sb.append("insert into foto (fotoid,path,mimetype,creationdate");
+		vals.append("?,?,?,?");
 		sb.append(",year,month,day,hour,minute");
+		vals.append(",?,?,?,?,?");
 		sb.append(",w,h,make,model,geo_long,geo_lat,orientation");
-		if (null != note && note.length() > 1) {
+		vals.append(",?,?,?,?,?,?,?");
+		if (hasNote) {
 			sb.append(",note");
+			vals.append(",?");
 		}
-		sb.append(", phash, isMissing, stamp)");
-		if (null != note && note.length() > 1) {
-			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-		} else {
-			sb.append(" values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-		}
+		sb.append(", isMissing, isPrivate)");
+		vals.append(",?,?");
+
+		sb.append(" values(");
+		sb.append(vals.toString());
+		sb.append(")");
+
 		String sql = sb.toString();
+
+		int fotoid = nextSequence("foto");
 
 		QueryRunner qr = new QueryRunner();
 
-		if (null != note && note.length() > 1) {
-			qr.update(c, sql, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model, lng, lat,
-					o, note, phash, isMissing, stamp);
+		if (hasNote) {
+			qr.update(c, sql, fotoid, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model,
+					lng, lat, o, note, isMissing, isPrivate);
 		} else {
-			qr.update(c, sql, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model, lng, lat,
-					o, phash, isMissing, stamp);
+			qr.update(c, sql, fotoid, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model,
+					lng, lat, o, phash, isMissing, isPrivate);
 		}
 
 	}
 
-	public void updatePath(String path, String newPath) {
+	public void updatePath(int fotoid, String newPath) {
 
 		try {
 			Connection c = cm.nextFree(cd);
-			String sql = "update foto set path=? where path=?";
+			String sql = "update foto set path=? where fotoid=?";
 			PreparedStatement p = c.prepareStatement(sql);
 			p.clearParameters();
 			p.setString(1, newPath);
-			p.setString(2, path);
+			p.setInt(2, fotoid);
 			p.executeUpdate();
 			p.close();
 			cm.bringConnectionBack(cd.id, c);
@@ -361,9 +421,9 @@ public class FotoDB {
 		}
 	}
 
-	public void updateFoto(File f, String note) throws IOException, SQLException {
-		updateFoto(conn, f, note);
-	}
+//	public void XXupdateFoto(File f, String note) throws IOException, SQLException {
+//		updateFoto(conn, f, note);
+//	}
 
 	/**
 	 * update data in foto index from file
@@ -377,7 +437,7 @@ public class FotoDB {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	public void updateFoto(Connection c, File f, String note) throws IOException, SQLException {
+	public void XXupdateFoto(Connection c, File f, String note) throws IOException, SQLException {
 
 		if (null == f) {
 			return;
@@ -388,7 +448,7 @@ public class FotoDB {
 		}
 
 		// check existence
-		boolean cnt = existsFoto(f.getAbsolutePath());
+		boolean cnt = existsFoto(f);
 		if (!cnt) {
 			return;
 		}
@@ -421,7 +481,7 @@ public class FotoDB {
 
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("update foto set mimetype=?,creationdate=?,w=?,h=?,make=?,model=?");
-		sb.append(",geo_long=?,geo_lat=?,orientation=?,phash=?,isMissing=0");
+		sb.append(",geo_long=?,geo_lat=?,orientation=?,isMissing=0");
 		sb.append(",year=?,month=?,day=?,hour=?,minute=?");
 		if (null != note && note.length() > 1) {
 			sb.append(",note=?");
@@ -439,123 +499,21 @@ public class FotoDB {
 
 	}
 
-	protected void updateMetadata(Connection c, String path) throws IOException, SQLException {
-
-		File f = new File(path);
-		if (!f.exists()) {
-			return;
-		}
-
-		Metadata md = mdh.readMetadata(f);
-
-		String cd = mdh.format(f, md, "@{CreationDate: yyyy-MM-dd'T'HHmm}");
-
-		QueryRunner qr = new QueryRunner();
-		String sql = "update foto set creationdate=? where path=?";
-		qr.update(c, sql, cd, path);
-	}
-
-	public void updatePHashs() throws IOException, SQLException {
-
-		String sql = "select path from foto where phash='" + Foto.defaultHash + "'";
-
-		ResultSetHandler<List<String>> rsh = new ResultSetHandler<List<String>>() {
-			public List<String> handle(ResultSet rs) throws SQLException {
-				List<String> res = new ArrayList<String>();
-				while (rs.next()) {
-					res.add(rs.getString(1));
-				}
-				return res;
-			}
-		};
-
-		QueryRunner qr = new QueryRunner();
-		List<String> paths = qr.query(conn, sql, rsh);
-
-		int cnt = 0;
-
-		for (String p : paths) {
-			updatePHash(p);
-			cnt++;
-			if (cnt % 1000 == 0) {
-				System.out.println(String.format("cnt: %d", cnt));
-			}
-		}
-	}
-
-	public void updatePHash(String path) throws IOException, SQLException {
-		updatePHash(this.conn, path);
-	}
-
-	public void updatePHash(Connection c, String path) throws IOException, SQLException {
-
-		if (null == path) {
-			return;
-		}
-
-		if (path.length() < 1) {
-			return;
-		}
-
-		File f = new File(path);
-		if (!f.exists()) {
-			return;
-		}
-		PHash ph = new PHash();
-		FileInputStream fis = new FileInputStream(f);
-		String h = Foto.defaultHash;
-		try {
-			h = ph.getHash(fis);
-		} catch (Exception e) {
-			// TODO
-			e.printStackTrace();
-		}
-
-		QueryRunner qr = new QueryRunner();
-		String sql = "update foto set phash=? where path=?";
-		qr.update(c, sql, h, path);
-	}
-
-	protected void fixFilenameRepetitions(Connection c, String path) throws IOException, SQLException {
-
-		File f = new File(path);
-		if (!f.exists()) {
-			return;
-		}
-
-		String fn = f.getName();
-		Matcher matcher = repetionFinder.matcher(fn);
-		String repeated = matcher.matches() ? matcher.group(1) : null;
-
-		// System.out.println("repeated:" + repeated);
-
-		boolean dryRun = false;
-
-		if (null != repeated) {
-
-			String p2 = path.replaceFirst(repeated + "_", "");
-
-			if (dryRun) {
-				note("would move %s to %s", path, p2);
-			} else {
-
-				File nf = new File(p2);
-				nf.mkdirs();
-
-				Path source = Paths.get(path);
-				Path target = Paths.get(p2);
-				try {
-					Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-					note("  --> %s", p2);
-					QueryRunner qr = new QueryRunner();
-					String sql = "update foto set path=? where path=?";
-					qr.update(c, sql, p2, path);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
+//	protected void XXupdateMetadata(Connection c, int fotoid) throws IOException, SQLException {
+//
+//		File f = new File(path);
+//		if (!f.exists()) {
+//			return;
+//		}
+//
+//		Metadata md = mdh.readMetadata(f);
+//
+//		String cd = mdh.format(f, md, "@{CreationDate: yyyy-MM-dd'T'HHmm}");
+//
+//		QueryRunner qr = new QueryRunner();
+//		String sql = "update foto set creationdate=? where path=?";
+//		qr.update(c, sql, cd, path);
+//	}
 
 	public List<Foto> searchFoto(String searchTerm, int page, int pagesize) throws SQLException {
 
@@ -570,6 +528,9 @@ public class FotoDB {
 		sb.append(" from foto where isMissing=0");
 		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
+		}
+		if (excludePrivate) {
+			sb.append(" and isPrivate=0");
 		}
 		if (searchTerm.length() > 0) {
 			sb.append(" and foto match ?");
@@ -586,7 +547,7 @@ public class FotoDB {
 		return res;
 	}
 
-	public List<Foto> searchSimilarFoto(String path, int page, int pagesize) throws SQLException {
+	public List<Foto> XXsearchSimilarFoto(int fotoid, int page, int pagesize) throws SQLException {
 
 		List<Foto> res = null;
 
@@ -595,7 +556,7 @@ public class FotoDB {
 		sb.append(fotoattrs);
 		sb.append(" from foto where path in (");
 		sb.append(" select distinct p from (");
-		sb.append(" select p2 p, d from distance where p1 = ? and d < 15");
+		sb.append(" select p2 p, d from distance where fotoid1 = ? and d < 15");
 		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
@@ -603,15 +564,15 @@ public class FotoDB {
 		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
-		sb.append(" select p1 p, d from distance where p2 = ? and d < 15");
+		sb.append(" select p1 p, d from distance where fotoid2 = ? and d < 15");
 		sb.append(" union all");
-		sb.append(" select path, 0 from foto where path=?");
+		sb.append(" select path, 0 from foto where fotoid=?");
 		sb.append(") order by d asc");
 		sb.append(")");
 
 		String sql = sb.toString();
 
-		res = searchFotoBySQL(page, pagesize, sql, path, path, path);
+		res = searchFotoBySQL(page, pagesize, sql, fotoid, fotoid, fotoid);
 
 		return res;
 	}
@@ -628,15 +589,15 @@ public class FotoDB {
 	 * @return search result (list of fotos)
 	 * @throws SQLException
 	 */
-	public List<Foto> searchCloseDate(String path, int page, int pagesize) throws SQLException {
+	public List<Foto> searchCloseDate(int fotoid, int page, int pagesize) throws SQLException {
 		List<Foto> res = new ArrayList<Foto>();
-		res = searchCloseDate(path, page, pagesize, 1);
+		res = searchCloseDate(fotoid, page, pagesize, 1);
 		return res;
 	}
 
-	public List<Foto> searchCloseDate(String path, int page, int pagesize, int nDays) throws SQLException {
+	public List<Foto> searchCloseDate(int fotoid, int page, int pagesize, int nDays) throws SQLException {
 
-		Foto ref = getFoto(path);
+		Foto ref = getFoto(fotoid);
 		String cd = ref.creationdate.substring(0, 10);
 
 		StringBuffer sb = new StringBuffer(1024);
@@ -648,19 +609,22 @@ public class FotoDB {
 		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
+		if (excludePrivate) {
+			sb.append(" and isPrivate=0");
+		}
 		sb.append(" order by creationdate");
 
 		String sql = sb.toString();
 
-		List<Foto> res = searchFotoBySQL(page, pagesize, sql, cd, cd);
+		List<Foto> res = searchFotoBySQL(fotoid, pagesize, sql, cd, cd);
 		return res;
 	}
 
-	public List<Foto> searchCloseLocation(String path, int page, int pagesize) throws Exception {
+	public List<Foto> searchCloseLocation(int fotoid, int page, int pagesize) throws Exception {
 
 		List<Foto> res = new ArrayList<Foto>();
 
-		Foto ref = getFoto(path);
+		Foto ref = getFoto(fotoid);
 		if ("NoLongitude".equals(ref.geo_long)) {
 			throw new Exception("This foto has no geo location to use as reference");
 		}
@@ -672,7 +636,7 @@ public class FotoDB {
 		refpoint.setLng(lng);
 		refpoint.setLat(lat);
 
-		res = searchCloseLocation(page, pagesize, refpoint);
+		res = searchCloseLocation(fotoid, pagesize, refpoint);
 
 		GeoPoint gp = new GeoPoint();
 		gp.setLng(lng);
@@ -732,22 +696,15 @@ public class FotoDB {
 		if (excludeDocumentary) {
 			sb.append(" and (category is NULL OR category <> 'documentary')");
 		}
+		if (excludePrivate) {
+			sb.append(" and isPrivate=0");
+		}
 
 		String sql = sb.toString();
 
 		int delta = 5;
 		res = searchFotoBySQL(page, pagesize, sql, ref.lng_deg - delta, ref.lng_deg + delta, ref.lat_deg - delta,
 				ref.lat_deg + delta);
-		// int cnt = 0;
-		// while (res.size() < pagesize * 2 && cnt < 7) {
-		// res = searchFotoBySQL(page, pagesize, sql, ref.lng_deg - delta,
-		// ref.lng_deg + delta, ref.lat_deg - delta,
-		// ref.lat_deg + delta);
-		// delta *= 2;
-		// cnt++;
-		// System.out.println(String.format("delta: %d cnt %d size %d", delta,
-		// cnt, res.size()));
-		// }
 
 		return res;
 	}
@@ -759,7 +716,6 @@ public class FotoDB {
 
 	public List<Foto> feelLucky(String searchTerm, int page, int pagesize) throws Exception {
 
-		// System.out.println(String.format("feel lucky: page %d", page));
 		List<Foto> res = searchFoto(searchTerm, page, pagesize);
 
 		return res;
@@ -804,32 +760,12 @@ public class FotoDB {
 		return res;
 	}
 
-	private List<Foto> unboundSearchFotoBySQL(String sql, Object... args) throws SQLException {
-
-		List<Foto> res = null;
-
-		ResultSetHandler<List<Foto>> rsh = new ResultSetHandler<List<Foto>>() {
-			public List<Foto> handle(ResultSet rs) throws SQLException {
-				List<Foto> res = new ArrayList<Foto>();
-				while (rs.next()) {
-					Foto f = rs2Foto(rs);
-					res.add(f);
-				}
-				return res;
-			}
-		};
-
-		QueryRunner qr = new QueryRunner();
-		res = qr.query(conn, sql, rsh, args);
-
-		return res;
-	}
-
 	private Foto rs2Foto(ResultSet rs) throws SQLException {
-		// "path,noteid,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note";
+		// "fotoid,path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,isMissing,isPrivate";
+
 		Foto f = new Foto();
-		f.path = rs.getString(1);
-		f.noteId = rs.getString(2);
+		f.fotoid = rs.getInt(1);
+		f.path = rs.getString(2);
 		f.mimeType = rs.getString(3);
 		f.creationdate = rs.getString(4);
 		f.w = rs.getInt(5);
@@ -841,9 +777,8 @@ public class FotoDB {
 		f.orientation = rs.getString(11);
 		f.category = rs.getString(12);
 		f.note = rs.getString(13);
-		f.phash = rs.getString(14);
-		f.isMissing = rs.getInt(15);
-		f.stamp = rs.getString(16);
+		f.isMissing = rs.getInt(14);
+		f.isPrivate = rs.getInt(15);
 		return f;
 	}
 
@@ -855,7 +790,7 @@ public class FotoDB {
 	 * @return @see Foto
 	 * @throws SQLException
 	 */
-	public Foto getFoto(String path) throws SQLException {
+	public Foto getFoto(int fotoid) throws SQLException {
 
 		QueryRunner qr = new QueryRunner();
 		ResultSetHandler<Foto> rsh = new ResultSetHandler<Foto>() {
@@ -867,61 +802,33 @@ public class FotoDB {
 				return res;
 			}
 		};
-		Foto res = qr.query(conn, "select " + fotoattrs + " from foto where path=?", rsh, path);
-
-		QueryRunner q2 = new QueryRunner();
-		String z = getStamp();
-		q2.update(conn, "update foto set viewed_last=? where path=?", z, path);
+		Foto res = qr.query(conn, "select " + fotoattrs + " from foto where fotoid=?", rsh, fotoid);
 
 		return res;
 	}
 
-	public void invalidateThumbnail(String path) throws IOException, SQLException {
-
-		if (null == path) {
-			return;
-		}
+	public void invalidateThumbnail(int fotoid) throws IOException, SQLException {
 
 		QueryRunner q2 = new QueryRunner();
-		q2.update(conn, "delete from thumbnail where path=?", path);
-
-		boolean debug = false;
-
-		if (debug) {
-
-			ResultSetHandler<Integer> rsh = new ResultSetHandler<Integer>() {
-				public Integer handle(ResultSet rs) throws SQLException {
-					Integer res = null;
-					if (rs.next()) {
-						res = rs.getInt(1);
-					}
-					return res;
-				}
-			};
-
-			int cnt = q2.query(conn, "select count(*) from thumbnail where path=?", rsh, path);
-			note("i FotoDB.invalidateThumbnail: now have %d thumnbails for %s", cnt, path);
-		}
+		q2.update(conn, "delete from thumbnail where path=?", fotoid);
 	}
 
-	public Thumbnail getThumbnail(File f, int width, int height) throws IOException, SQLException {
+	public Thumbnail getThumbnail(int fotoid, int width, int height) throws IOException, SQLException {
 
 		Thumbnail res = null;
-
-		if (null == f) {
-			return res;
-		}
+		Foto foto = getFoto(fotoid);
 
 		// check DB first
 		res = thumbnailExistsQR.query(conn,
-				"select path,image,height,mimetype from thumbnail where path=? and height=?", thumbnailExistsRSH,
-				f.getAbsoluteFile(), height);
+				"select fotoid,image,height,mimetype from thumbnail where fotoid=? and height=?", thumbnailExistsRSH,
+				fotoid, height);
 
 		if (null == res) { // thumbnail not yet cached
 
-			Foto foto = getFoto(f.getAbsolutePath());
-
 			if (foto.h < height) { // for small images, do not calculate
+
+				File f = new File(foto.path);
+
 				res = new Thumbnail();
 				res.mimeType = foto.mimeType;
 				res.image = slurp(f);
@@ -931,10 +838,7 @@ public class FotoDB {
 			} else { // create and cache
 
 				res = createThumbnail(foto, width, height);
-
 				if (null != res.image) {
-					// System.out.println(String.format("D ... storing cache %s %d",
-					// f.getName(), height));
 					insertThumbnail(res);
 				}
 			}
@@ -944,8 +848,6 @@ public class FotoDB {
 	}
 
 	private Thumbnail createThumbnail(Foto f, int width, int height) throws FileNotFoundException, IOException {
-
-		// note(":) creating thumbnail for %s", f.path);
 
 		Thumbnail res = new Thumbnail();
 		res.path = f.path;
@@ -969,11 +871,6 @@ public class FotoDB {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
 		if (rotate != 0) {
-			// note("i rotate(%d) due to %s for %s", rotate, f.orientation,
-			// f.path);
-			// if( 90 == rotate || 270 == rotate ) {
-			// height = (int)Math.round(height / 1.45);
-			// }
 			Thumbnails.of(is).useExifOrientation(false).dithering(Dithering.ENABLE).outputQuality(.9)
 					.size(width, height).rotate(rotate).toOutputStream(baos);
 		} else {
@@ -990,38 +887,11 @@ public class FotoDB {
 		return res;
 	}
 
-	// private void insertThumbnail(Thumbnail t) throws SQLException {
-	// toBeCachedThumbnails.add(t);
-	// if (toBeCachedThumbnails.size() >= 8) {
-	// QueryRunner qr = new QueryRunner();
-	// while (!toBeCachedThumbnails.isEmpty()) {
-	// Thumbnail tn = toBeCachedThumbnails.remove();
-	// // note("inserting %s", tn.path);
-	// qr.update(conn,
-	// "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)",
-	// tn.path,
-	// tn.image, tn.height, tn.mimeType);
-	// }
-	// }
-	// }
-
 	private void insertThumbnail(Thumbnail t) throws SQLException {
 		QueryRunner qr = new QueryRunner();
-		qr.update(conn, "insert into thumbnail (path, image, height, mimetype) values (?,?,?,?)", t.path, t.image,
+		qr.update(conn, "insert into thumbnail (fotoid, image, height, mimetype) values (?,?,?,?)", t.fotoid, t.image,
 				t.height, t.mimeType);
 
-	}
-
-	private byte[] slurp(File f) throws IOException {
-		byte[] res = new byte[0];
-		if (null == f || !f.exists() || !f.isFile()) {
-			return res;
-		}
-		res = new byte[(int) f.length()];
-		InputStream is = new FileInputStream(f);
-		is.read(res);
-		is.close();
-		return res;
 	}
 
 	private void runSQLScript(final Statement stmt, final String filename) throws IOException, SQLException {
@@ -1166,6 +1036,31 @@ public class FotoDB {
 		return excludeDocumentary;
 	}
 
+	public void setExcludePrivate(boolean val) {
+		excludePrivate = val;
+	}
+
+	public boolean toggleExcludePrivate() {
+		if (excludePrivate) {
+			excludePrivate = false;
+		} else {
+			excludePrivate = true;
+		}
+		return excludePrivate;
+	}
+
+	private byte[] slurp(File f) throws IOException {
+		byte[] res = new byte[0];
+		if (null == f || !f.exists() || !f.isFile()) {
+			return res;
+		}
+		res = new byte[(int) f.length()];
+		InputStream is = new FileInputStream(f);
+		is.read(res);
+		is.close();
+		return res;
+	}
+
 	public void updateExif(Foto f) {
 
 		File exiftool = new File("/usr/bin/exiftool");
@@ -1210,5 +1105,35 @@ public class FotoDB {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public synchronized int nextSequence(final String name) {
+
+		int res = -1;
+
+		try {
+			Connection c = cm.nextFree(cd);
+			PreparedStatement ps = c.prepareStatement("update sequence set val=val+1 where name=?");
+			ps.clearParameters();
+			ps.setString(1, name);
+			ps.executeUpdate();
+			ps.close();
+
+			ps = c.prepareStatement("select val from sequence where name=?");
+			ps.clearParameters();
+			ps.setString(1, name);
+
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				res = rs.getInt(1);
+			}
+			rs.close();
+			ps.close();
+			cm.bringConnectionBack(cd.id, c);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return res;
 	}
 }

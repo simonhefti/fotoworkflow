@@ -12,6 +12,7 @@ package ch.heftix.fotoworkflow.selector;
 
 public class Thumbnail {
 
+	public int fotoid;
 	public String path;
 	public byte[] image;
 	public String mimeType;

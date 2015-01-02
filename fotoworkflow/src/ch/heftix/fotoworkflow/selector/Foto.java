@@ -10,9 +10,12 @@
  */
 package ch.heftix.fotoworkflow.selector;
 
+import java.io.File;
+
 import ch.heftix.fotoworkflow.selector.json.Payload;
 
 public class Foto implements Payload {
+	public int  fotoid;
 	public String path;
 	public String mimeType;
 	public String orientation;
@@ -28,6 +31,7 @@ public class Foto implements Payload {
 	public String creationdate;
 	public String phash;
 	public int isMissing = 0;
+	public int isPrivate = 0;
 	public double tmpKmFrom = 0;
 	public String stamp;
 
@@ -58,7 +62,10 @@ public class Foto implements Payload {
 	public String toJSON() {
 		StringBuffer sb = new StringBuffer(1024);
 		sb.append("{");
-		sb.append("\"thumbnail\":" + "\"/?cmd=thumbnail&path=" + path + "\"");
+		sb.append("\"fotoid\":\"" + Integer.toString(fotoid) + "\"");
+		File f = new File(path);
+		sb.append(",\"filename\": \"" + f.getName() + "\"");
+		sb.append(",\"thumbnail\":" + "\"/?cmd=thumbnail&path=" + path + "\"");
 		sb.append(",\"scaled_to_screen\":" + "\"/?cmd=thumbnail&w=800&path=" + path + "\"");
 		sb.append(",\"w400\":" + "\"/?cmd=thumbnail&w=400&path=" + path + "\"");
 		sb.append(",\"w600\":" + "\"/?cmd=thumbnail&w=600&path=" + path + "\"");
@@ -130,6 +137,7 @@ public class Foto implements Payload {
 		res.creationdate = this.creationdate;
 		res.phash = this.phash;
 		res.isMissing = this.isMissing;
+		res.isPrivate = this.isPrivate;
 		res.tmpKmFrom = this.tmpKmFrom;
 		res.stamp = this.stamp;
 		return res;

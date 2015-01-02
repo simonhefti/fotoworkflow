@@ -24,12 +24,16 @@ public class AppendNoteCommand extends BaseWebCommand {
 
 	public void process(Params params, JsonResponse jr) throws Exception {
 
-		String path = params.get("path");
+		int fotoid = params.getInt("fotoid", -1);
 		String v = params.get("v");
 
-		fs.appendNote(path, v);
+		if (-1 == fotoid) {
+			return;
+		}
+
+		fs.appendNote(fotoid, v);
 
 		jr.code = "ok";
-		jr.msg = String.format("updated '%s' for %s", v, path);
+		jr.msg = String.format("updated '%s' for %d", v, fotoid);
 	}
 }
