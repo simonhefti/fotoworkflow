@@ -22,6 +22,7 @@ import ch.heftix.fotoworkflow.selector.cmd.AppendNoteCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ConfigGetCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ConfigSetCommand;
 import ch.heftix.fotoworkflow.selector.cmd.ExcludeDocumentaryCommand;
+import ch.heftix.fotoworkflow.selector.cmd.ExcludePrivateCommand;
 import ch.heftix.fotoworkflow.selector.cmd.FeelLuckyCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCLCommand;
 import ch.heftix.fotoworkflow.selector.cmd.GetCommand;
@@ -34,6 +35,7 @@ import ch.heftix.fotoworkflow.selector.cmd.PingCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseDateFotoCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchCloseLocationFotoCommand;
 import ch.heftix.fotoworkflow.selector.cmd.SearchFotoCommand;
+import ch.heftix.fotoworkflow.selector.cmd.TogglePrivateCommand;
 import ch.heftix.fotoworkflow.selector.cmd.UpdateCommand;
 import ch.heftix.fotoworkflow.selector.cmd.WebCommand;
 import fi.iki.elonen.NanoHTTPD;
@@ -79,7 +81,10 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 
 		fs.register("msg.next", new NextMessageCommand(fs));
 
-		fs.register("exclude-documentary", new ExcludeDocumentaryCommand(fs));
+		fs.register("exclude.documentary", new ExcludeDocumentaryCommand(fs));
+
+		fs.register("exclude.private", new ExcludePrivateCommand(fs));
+		fs.register("toggle.private", new TogglePrivateCommand(fs));
 
 		try {
 			fs.start();
@@ -123,9 +128,8 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 
 		Response r = null;
 
-		// System.out.println("m/q/u '" + session.getMethod() + "' '" +
-		// session.getQueryParameterString() + "' '"
-		// + session.getUri());
+//		System.out.println("m/q/u '" + session.getMethod() + "' '" + session.getQueryParameterString() + "' '"
+//				+ session.getUri());
 
 		try {
 			r = wc.handle(params);
@@ -191,6 +195,10 @@ public class FotoSelector extends NanoHTTPD implements IMessageSink {
 			String msg = String.format("Cannot update note. fotoid: %d. Note: %s. Reason: %s", fotoid, v, e);
 			message(msg);
 		}
+	}
+
+	public void togglePrivate(int fotoid) throws Exception {
+		db.togglePrivate(fotoid);
 	}
 
 	public FotoDB getDB() {

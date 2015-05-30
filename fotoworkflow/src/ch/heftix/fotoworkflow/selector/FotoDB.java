@@ -18,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -40,8 +41,11 @@ import net.coobird.thumbnailator.resizers.configurations.Dithering;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.ResultSetHandler;
 import org.apache.tika.metadata.Metadata;
+import org.rabinfingerprint.fingerprint.RabinFingerprintLong;
+import org.rabinfingerprint.polynomial.Polynomial;
 import org.sqlite.SQLiteJDBCLoader;
 
+import ch.heftix.fotoworkflow.mover.FormatResult;
 import ch.heftix.fotoworkflow.mover.GeoPoint;
 import ch.heftix.fotoworkflow.mover.TikaMetadataHelper;
 import done.cm.ConnectionDescription;
@@ -55,8 +59,7 @@ public class FotoDB {
 	QueryRunner thumbnailExistsQR = new QueryRunner();
 	QueryRunner countFotosQR = new QueryRunner();
 
-	ResultSetHandler<Integer> fotoExistsRSH = null;
-	ResultSetHandler<Integer> countFotosRSH = null;
+	ResultSetHandler<Integer> firstIntRSH = null;
 	ResultSetHandler<Thumbnail> thumbnailExistsRSH = null;
 
 	TikaMetadataHelper mdh = new TikaMetadataHelper();
@@ -68,7 +71,11 @@ public class FotoDB {
 	String pCreationDate = "@{CreationDate: yyyy-MM-dd'T'HHmm}";
 	String pModel = "@{Model}";
 
-	String fotoattrs = "fotoid,path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,isMissing,isPrivate";
+	String fotoattrs = "fotoid,path,mimetype,creationdate,w,h,make,model,geo_long,geo_lat,orientation,category,note,isMissing,isPrivate,fingerprint";
+
+	private final BigInteger key = new BigInteger("15470732547911801");
+	private final Polynomial polynomial = Polynomial.createFromLong(key.longValue());
+//	private final RabinFingerprintLong rabin = new RabinFingerprintLong(polynomial);
 
 	private boolean excludeDocumentary = true;
 	private boolean excludePrivate = true;
@@ -104,16 +111,18 @@ public class FotoDB {
 			stmt.execute("PRAGMA cache_size=100000");
 			stmt.close();
 
-			fotoExistsRSH = new ResultSetHandler<Integer>() {
+			firstIntRSH = new ResultSetHandler<Integer>() {
 				public Integer handle(ResultSet rs) throws SQLException {
+					Integer res = null;
 					if (rs.next()) {
-						return rs.getInt(1);
+						res = rs.getInt(1);
+						if( rs.wasNull()) {
+							res = null;
+						}
 					}
-					return 0;
+					return res;
 				}
 			};
-
-			countFotosRSH = fotoExistsRSH;
 
 			thumbnailExistsRSH = new ResultSetHandler<Thumbnail>() {
 				public Thumbnail handle(ResultSet rs) throws SQLException {
@@ -147,6 +156,29 @@ public class FotoDB {
 		fotoMove.moveFoto(fotoid, album);
 	}
 
+	public void togglePrivate(int fotoid) throws Exception {
+
+		if (-1 == fotoid) {
+			return;
+		}
+
+		String sql = "update foto set isPrivate = case when isPrivate=1 then 0 when isPrivate=0 then 1 else isPrivate end where fotoid=?";
+
+		Connection c = cm.nextFree(cd);
+		QueryRunner qr = new QueryRunner();
+		qr.update(conn, sql, fotoid);
+		cm.bringConnectionBack(cd.id, c);
+
+		Foto foto = getFoto(fotoid);
+		if (foto.isPrivate == 1) {
+			moveFoto(fotoid, "private");
+		} else {
+			String album = mapCategoryToAlbum(foto.category);
+			moveFoto(fotoid, album);
+		}
+
+	}
+
 	public void storeInfo(int fotoid, String k, String v) throws SQLException {
 
 		List<String> allowedKeys = Arrays.asList("note", "orientation", "category");
@@ -168,18 +200,29 @@ public class FotoDB {
 		String sql = "update foto set " + k + "=?" + " where fotoid=?";
 		qr.update(conn, sql, v, fotoid);
 
-		try {
-			if ("category".equals(k) && "best-of".equals(v)) {
-				moveFoto(fotoid, "bestof");
-			} else if ("category".equals(k) && "selection".equals(v)) {
-				moveFoto(fotoid, "selection");
+		if ("category".equals(k)) {
+			String album = mapCategoryToAlbum(v);
+			try {
+				moveFoto(fotoid, album);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+	}
 
+	public String mapCategoryToAlbum(String category) {
+
+		if ("best-of".equals(category)) {
+			return "bestof";
+		} else if ("selection".equals(category)) {
+			return "selection";
+		} else if ("documentary".equals(category)) {
+			return "documentary";
+		} else if ("private".equals(category)) {
+			return "private";
+		}
+		return "import";
 	}
 
 	public void addEvent(final String type, final String arg1, final String arg2, final String user, int fotoid,
@@ -257,8 +300,8 @@ public class FotoDB {
 
 	public boolean existsFoto(int fotoid) throws SQLException {
 		boolean res = false;
-		int cnt = fotoExistsQR.query(conn, "select count(path) from foto where fotoid=?", fotoExistsRSH, fotoid);
-		if (0 != cnt) {
+		Integer cnt = fotoExistsQR.query(conn, "select count(path) from foto where fotoid=?", firstIntRSH, fotoid);
+		if (null != cnt) {
 			res = true;
 		}
 		return res;
@@ -273,15 +316,28 @@ public class FotoDB {
 		if (null == path) {
 			return res;
 		}
-		int cnt = fotoExistsQR.query(conn, "select count(path) from foto where path=?", fotoExistsRSH, path);
-		if (0 != cnt) {
+		Integer cnt = fotoExistsQR.query(conn, "select count(path) from foto where path=?", firstIntRSH, path);
+		if (null != cnt) {
 			res = true;
 		}
 		return res;
 	}
 
-	public void insertFoto(File f, String note) throws IOException, SQLException {
-		insertFoto(conn, f, note);
+	public Integer existsFingerprint(String fingerPrint) throws SQLException {
+		Integer fotoid = null;
+
+		if (null == fingerPrint) {
+			return fotoid;
+		}
+
+		QueryRunner qr = new QueryRunner();
+		fotoid = qr.query(conn, "select fotoid from foto where fingerprint=?", firstIntRSH, fingerPrint);
+
+		return fotoid;
+	}
+
+	public void insertFoto(File f, String note, final String fp) throws IOException, SQLException {
+		insertFoto(conn, f, note, fp);
 	}
 
 	private int getIntFromDateString(String str) {
@@ -324,13 +380,26 @@ public class FotoDB {
 		cm.bringConnectionBack(cd.id, c);
 	}
 
-	public void insertFoto(Connection c, File f, String note) throws IOException, SQLException {
+	/**
+	 * save a new foto in the catalog
+	 * @param c DB connection to use
+	 * @param f file to insert
+	 * @param note user-added note
+	 * @param fp fingerprint
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	public void insertFoto(Connection c, File f, String note, final String fp) throws IOException, SQLException {
 
 		if (null == f) {
 			return;
 		}
 
 		if (!f.exists()) {
+			return;
+		}
+
+		if (null == fp) {
 			return;
 		}
 
@@ -380,8 +449,8 @@ public class FotoDB {
 			sb.append(",note");
 			vals.append(",?");
 		}
-		sb.append(", isMissing, isPrivate)");
-		vals.append(",?,?");
+		sb.append(", isMissing, isPrivate, fingerprint)");
+		vals.append(",?,?,?");
 
 		sb.append(" values(");
 		sb.append(vals.toString());
@@ -395,10 +464,10 @@ public class FotoDB {
 
 		if (hasNote) {
 			qr.update(c, sql, fotoid, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model,
-					lng, lat, o, note, isMissing, isPrivate);
+					lng, lat, o, note, isMissing, isPrivate, fp);
 		} else {
 			qr.update(c, sql, fotoid, f.getAbsolutePath(), mt, cd, year, month, day, hour, minute, w, h, make, model,
-					lng, lat, o, phash, isMissing, isPrivate);
+					lng, lat, o, isMissing, isPrivate, fp);
 		}
 
 	}
@@ -421,9 +490,10 @@ public class FotoDB {
 		}
 	}
 
-//	public void XXupdateFoto(File f, String note) throws IOException, SQLException {
-//		updateFoto(conn, f, note);
-//	}
+	// public void XXupdateFoto(File f, String note) throws IOException,
+	// SQLException {
+	// updateFoto(conn, f, note);
+	// }
 
 	/**
 	 * update data in foto index from file
@@ -499,21 +569,22 @@ public class FotoDB {
 
 	}
 
-//	protected void XXupdateMetadata(Connection c, int fotoid) throws IOException, SQLException {
-//
-//		File f = new File(path);
-//		if (!f.exists()) {
-//			return;
-//		}
-//
-//		Metadata md = mdh.readMetadata(f);
-//
-//		String cd = mdh.format(f, md, "@{CreationDate: yyyy-MM-dd'T'HHmm}");
-//
-//		QueryRunner qr = new QueryRunner();
-//		String sql = "update foto set creationdate=? where path=?";
-//		qr.update(c, sql, cd, path);
-//	}
+	// protected void XXupdateMetadata(Connection c, int fotoid) throws
+	// IOException, SQLException {
+	//
+	// File f = new File(path);
+	// if (!f.exists()) {
+	// return;
+	// }
+	//
+	// Metadata md = mdh.readMetadata(f);
+	//
+	// String cd = mdh.format(f, md, "@{CreationDate: yyyy-MM-dd'T'HHmm}");
+	//
+	// QueryRunner qr = new QueryRunner();
+	// String sql = "update foto set creationdate=? where path=?";
+	// qr.update(c, sql, cd, path);
+	// }
 
 	public List<Foto> searchFoto(String searchTerm, int page, int pagesize) throws SQLException {
 
@@ -710,7 +781,7 @@ public class FotoDB {
 	}
 
 	public int countFotos() throws SQLException {
-		int cnt = countFotosQR.query(conn, "select count(path) from foto", countFotosRSH);
+		int cnt = countFotosQR.query(conn, "select count(path) from foto", firstIntRSH);
 		return cnt;
 	}
 
@@ -1059,6 +1130,61 @@ public class FotoDB {
 		is.read(res);
 		is.close();
 		return res;
+	}
+
+	public void updateFingerprint1(final int fotoid, final TikaMetadataHelper mdh) throws SQLException, IOException {
+
+		Foto foto = getFoto(fotoid);
+
+		if (null == foto) {
+			return;
+		}
+
+		File f = new File(foto.path);
+
+		if (null == f || !f.exists()) {
+			return;
+		}
+
+		FormatResult fr = mdh.format(f);
+		String fingerprint = fr.getResult();
+
+		QueryRunner qr = new QueryRunner();
+		String sql = "update foto set fingerprint=? where fotoid=?";
+		qr = new QueryRunner();
+		qr.update(conn, sql, fingerprint, fotoid);
+	}
+	
+	public String getFingerprint(final String fn) throws IOException {
+		File f = new File(fn);
+		return getFingerprint(f);
+	}
+
+
+	public String getFingerprint(final File f) throws IOException {
+
+		String res = null;
+
+		if (null == f || !f.exists()) {
+			return res;
+		}
+
+		byte[] bytes = slurp(f);
+		
+		RabinFingerprintLong r = new RabinFingerprintLong(polynomial);
+		r.pushBytes(bytes);
+
+		res = Long.toString(r.getFingerprintLong(), 16);
+
+		return res;
+	}
+
+	public void updateFingerprint(final int fotoid, final String fp) throws SQLException, IOException {
+
+		QueryRunner qr = new QueryRunner();
+		String sql = "update foto set fingerprint=? where fotoid=?";
+		qr = new QueryRunner();
+		qr.update(conn, sql, fp, fotoid);
 	}
 
 	public void updateExif(Foto f) {

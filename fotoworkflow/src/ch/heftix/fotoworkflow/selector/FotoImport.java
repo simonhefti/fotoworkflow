@@ -32,6 +32,7 @@ public class FotoImport {
 	FotoSelector fs = null;
 	FotoDB db = null;
 	String note = null;
+	
 
 	public FotoImport(FotoSelector fs, String pattern, String note) {
 		this.fs = fs;
@@ -91,6 +92,14 @@ public class FotoImport {
 			note("  skipping %s", file.getAbsolutePath());
 			return;
 		}
+		
+		// check fingerprint
+		String fp = db.getFingerprint(file);
+		Integer existingFotoId = db.existsFingerprint(fp);
+		if( null != existingFotoId) {
+			note("  a foto with same fingerprint already exists (id %d), skipping %s", existingFotoId, file.getAbsolutePath());
+			return;
+		}
 
 		if (fr.doDelete()) {
 			note("  exists, deleting source %s", file.getAbsolutePath());
@@ -99,6 +108,8 @@ public class FotoImport {
 		}
 
 		String newName = fr.getResult();
+		
+		
 
 		if (dryRun) {
 			note("would move %s to %s", file.getAbsolutePath(), newName);
@@ -117,7 +128,7 @@ public class FotoImport {
 					note("  already stored, deleting existing %s", newName);
 					db.deleteFoto(newName);
 				}
-				db.insertFoto(nf, note);
+				db.insertFoto(nf, note, fp);
 				fs.message("imported " + nf.getName());
 			} catch (IOException e) {
 				fs.message("cannot import: %s", e);

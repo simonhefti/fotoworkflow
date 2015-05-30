@@ -41,11 +41,17 @@ public class FotoMove {
 	public void moveFoto(int fotoid, String album) throws Exception {
 
 		Foto foto = db.getFoto(fotoid);
+		
+		if( null == foto) {
+			return;
+		}
 
 		File file = new File(foto.path);
 		if (!file.exists()) {
 			return;
 		}
+		
+		String oldPath = foto.path;
 
 		TikaMetadataHelper mdh = new TikaMetadataHelper();
 
@@ -68,6 +74,10 @@ public class FotoMove {
 		if (!mimeType.startsWith("image")) {
 			return;
 		}
+		
+		if( null == album) {
+			album = "import";
+		}
 
 		String patternKey = album + "Pattern";
 		String pattern = db.getConf(patternKey);
@@ -80,6 +90,11 @@ public class FotoMove {
 		}
 
 		String newName = fr.getResult();
+		
+		if( newName.equals(oldPath)) {
+			// nothing to do
+			return;
+		}
 
 		if (dryRun) {
 			note("would move %s to %s", file.getAbsolutePath(), newName);

@@ -36,6 +36,11 @@ public class FeelLuckyCommand extends BaseWebCommand {
 
 		int page = (int) (Math.random() * db.countFotos() / pagesize);
 		List<Foto> fns = db.feelLucky(searchterm, page, pagesize);
+		
+		if( fns.isEmpty()) {
+			jr.code = "nok";
+			jr.msg = "no fotos found";
+		}
 
 		StringBufferPayload pl = new StringBufferPayload();
 		BaseWebCommand.list(fns, pl);

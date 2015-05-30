@@ -38,7 +38,8 @@ create virtual table foto using fts4 (
   category text, -- likes, e.g. best-of
   note text, -- a description of the image
   isMissing int, -- flag
-  isPrivate int -- flag
+  isPrivate int, -- flag
+  fingerprint text -- technical foto name, consisting of time and filename
 );
 
 -- migration
@@ -46,6 +47,7 @@ create virtual table foto using fts4 (
 -- drop table foto;
 -- create new table (see above)
 -- insert into foto select abs(random() % 100000), path, mimetype, creationdate, year, month, day, hour, minute, w, h, make, model, geo_long, geo_lat, orientation, category, note, isMissing, 0 from fotobck;
+-- insert into foto select fotoid,path,mimetype,creationdate,year,month,day,hour,minute,w,h,make,model,geo_long,geo_lat,orientation,category,note,isMissing,isPrivate,null from fotobck;
 -- drop table fotobck;
 
 

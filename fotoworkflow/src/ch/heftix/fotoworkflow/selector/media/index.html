@@ -224,6 +224,17 @@ var _rotate = function rotate(el, ang, parent) {
 	parent.attr("height",w + 20);
 }
 
+var _toggle = function(cmd, fotoid) {
+	if( undefined == fotoid) {
+		return;
+	}
+	var url = "/?cmd=" + cmd + "&fotoid=" + fotoid;
+	$.get(url, function(response){
+		_note("info", response.msg);
+	});
+}
+
+
 var _save = function(fotoid, k, v) {
 	if( undefined == fotoid) {
 		return;
@@ -284,7 +295,23 @@ var _qualificationButton = function(item, iconName, category) {
 		bDoc.addClass("btn-default");
 	}
 	bDoc.on('click', function(e) {
-		_save(item.path,"category", category);
+		_save(item.fotoid,"category", category);
+		bDoc.removeClass("btn-primary");
+		bDoc.addClass("btn-default");
+	});
+	return bDoc;
+}
+
+var _togglePrivateButton = function(item) {
+	var bDoc = $("<a class='btn btn-primary btn-xs' href='#'></a>");
+	var icn = $("<span class='glyphicon glyphicon-" + "lock" + "' title='" + "private" + "'></span>");
+	bDoc.append(icn);
+	if( item.isPrivate ) {
+		bDoc.removeClass("btn-primary");
+		bDoc.addClass("btn-default");
+	}
+	bDoc.on('click', function(e) {
+		_toggle("toggle.private", item.fotoid);
 		bDoc.removeClass("btn-primary");
 		bDoc.addClass("btn-default");
 	});
@@ -404,7 +431,7 @@ function showFoto(data) {
 		var bNone = $("<button class='btn btn-info btn-xs' type='button'>NR</button>");
 		bNone.on('click', function(e) {
 			_rotate(img,"0deg", img);
-			_save(item.path,"orientation", "rotation reset");
+			_save(item.fotoid,"orientation", "rotation reset");
 		});
 		commands.append(bNone);
 		
@@ -423,6 +450,9 @@ function showFoto(data) {
 		commands.append(bDoc);
 				
 		var bDoc = _customNoteButton(item);
+		commands.append(bDoc);
+
+		var bDoc = _togglePrivateButton(item);
 		commands.append(bDoc);
 
 		// similar
@@ -518,13 +548,13 @@ $('#query').bind('change', function() {
 	search_cmd = "list";
 	search_k = "st";
 	search_v = $('#query').val();
-	page = 1;
+	page = 0;
 	searchFoto();
 });
 
 $('#query').bind('keyup', function (e) {
   if (e.keyCode == 13) {
-	page = 1;
+	page = 0;
 	search_cmd = "list";
 	search_k = "st";
 	search_v = $('#query').val();
@@ -609,7 +639,7 @@ $('#ping').on('click', function(e) {
 });
 
 $('#menuFeelLucky').on('click', function(e) {
-	page = 1;
+	page = 0;
 	search_cmd = "feellucky";
 	search_k = "st";
 	search_v = $('#query').val();
@@ -670,14 +700,14 @@ $('#grid1_1').on('click', function(e) {
 });
 
 $('#exclude_documentary').on('click', function(e) {
-	$.getJSON("/?cmd=exclude-documentary", function(r){
+	$.getJSON("/?cmd=exclude.documentary", function(r){
 		_note(r.code, r.msg);
 	});
 	searchFoto();
 });
 
 $('#exclude_private').on('click', function(e) {
-	$.getJSON("/?cmd=exclude-private", function(r){
+	$.getJSON("/?cmd=exclude.private", function(r){
 		_note(r.code, r.msg);
 	});
 	searchFoto();
